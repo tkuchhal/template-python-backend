@@ -72,17 +72,68 @@ jobs:
     docker:
       - image: google/cloud-sdk
     steps:
+      - setup_remote_docker
       - run:
-          name: Placeholder for running canary deployment.yaml
-          command: echo "Hello, world!"
+          name: Authenticate with GCP
+          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
+      - run:
+          name: Set up gcloud and kubectl
+          command: |
+            gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+            gcloud config set project testing-234907
+            gcloud container clusters get-credentials prod-cluster --region asia-southeast1
+      - run:
+          name: Fetch and update latest build config
+          command: |
+            git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
+            cd ~/build/services/template/production
+            sed -i "s|image:\(.*\)/template:.*|image:\1/template:$CIRCLE_SHA1|" ./deployment-canary.yaml
+      - run:
+          name: Deploy to GKE
+          command: kubectl apply -f ~/build/services/template/production/deployment-canary.yaml
+      - run:
+          name: Push the new version to git
+          command: |
+            cd ~/build
+            git config user.email "cicdrunner@template.com"
+            git config user.name "CI/CD"
+            git add ./services/template/production
+            git commit -m "Update image tag to new-tag"
+            git push origin main
+
 
   deploy-prod:
     docker:
       - image: google/cloud-sdk
     steps:
+      - setup_remote_docker
       - run:
-          name: Placeholder for deploying full production yaml
-          command: echo "Hello, world!"
+          name: Authenticate with GCP
+          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
+      - run:
+          name: Set up gcloud and kubectl
+          command: |
+            gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+            gcloud config set project testing-234907
+            gcloud container clusters get-credentials prod-cluster --region asia-southeast1
+      - run:
+          name: Fetch and update latest build config
+          command: |
+            git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
+            cd ~/build/services/template/production
+            sed -i "s|image:\(.*\)/template:.*|image:\1/template:$CIRCLE_SHA1|" ./deployment.yaml
+      - run:
+          name: Deploy to GKE
+          command: kubectl apply -f ~/build/services/template/production/deployment.yaml
+      - run:
+          name: Push the new version to git
+          command: |
+            cd ~/build
+            git config user.email "cicdrunner@template.com"
+            git config user.name "CI/CD"
+            git add ./services/template/production
+            git commit -m "Update image tag to new-tag"
+            git push origin main
 
 workflows:
   version: 2
