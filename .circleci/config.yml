@@ -44,9 +44,6 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - setup_remote_docker
-      - add_ssh_keys:
-          fingerprints:
-            - $BUILD_REPO_SSH_KEY
       - run:
           name: Authenticate with GCP
           command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
@@ -59,9 +56,7 @@ jobs:
       - run:
           name: Fetch latest build config
           command: |
-            ssh-keyscan github.com > githubKey
-            ssh-keygen -lf githubKey >> ~/.ssh/known_hosts
-            git clone git@github.com:tkuchh/build.git ~/build
+            git clone https://workflowr:$GITHUB_PAT/tkuchh/build.git ~/build
             cd ~/build/services/template/development
             sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml
       - run:
