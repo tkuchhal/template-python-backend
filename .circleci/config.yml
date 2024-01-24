@@ -78,11 +78,11 @@ workflows:
           context: gcp_credentials
           filters:
             branches:
-              only: master
+              only: main
       - deploy:
           context: gcp_credentials
           requires:
             - build-and-test
           filters:
             branches:
-              only: master
+              only: main
