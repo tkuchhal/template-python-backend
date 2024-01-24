@@ -52,7 +52,7 @@ jobs:
           command: |
             gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
             gcloud config set project testing-234907
-            gcloud container clusters get-credentials prod-cluster --region asia-southeast1
+            gcloud container clusters get-credentials dev-cluster --region asia-southeast1
       - run:
           name: Fetch latest build config
           command: |
@@ -66,6 +66,8 @@ jobs:
           name: Push the new version to git
           command: |
             cd ~/build
+            git config user.email "cicdrunner@template.com"
+            git config user.name "CI/CD"
             git add ./services/template/development
             git commit -m "Update image tag to new-tag"
             git push origin master
