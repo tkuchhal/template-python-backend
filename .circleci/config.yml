@@ -5,48 +5,27 @@ orbs:
 
 jobs:
   build-and-test:
-    docker:
-      - image: google/cloud-sdk
+    executor:
+      name: gcp-gcr/default
     steps:
       - checkout
-      - setup_remote_docker
-      - run:
-          name: Authenticate with GCP
-          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
-      - run:
-          name: Configure Docker for GCR
-          command: |
-            cat ${HOME}/gcp-key.json | docker login -u _json_key --password-stdin https://gcr.io
-      - run:
-          name: Build Docker Image
-          command: |
-            docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:latest .
-      - run:
-          name: Export Environment Variables
-          command: |
-            env > env_vars
+      - gcp-gcr/gcr-auth
+      - gcp-gcr/build-and-push-image:
+          image: gcr.io/testing-234907/template
+          tag: '$CIRCLE_SHA1,latest'
       - run:
           name: Run Tests in Docker Image
           command: |
             docker run --env-file env_vars gcr.io/testing-234907/template:$CIRCLE_SHA1 pytest /code/tests/
-      - run:
-          name: Push Docker Image to Container Registry
-          command: |
-            docker push gcr.io/testing-234907/template:$CIRCLE_SHA1
-            docker push gcr.io/testing-234907/template:latest
 
   deploy-dev:
-    docker:
-      - image: google/cloud-sdk
+    executor:
+      name: gcp-gcr/default
     steps:
-      - setup_remote_docker
-      - run:
-          name: Authenticate with GCP
-          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
+      - gcp-gcr/gcr-auth
       - run:
           name: Set up gcloud and kubectl
           command: |
-            gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
             gcloud config set project testing-234907
             gcloud container clusters get-credentials dev-cluster --region asia-southeast1
       - run:
@@ -65,20 +44,20 @@ jobs:
             git config user.email "cicdrunner@template.com"
             git config user.name "CI/CD"
             git add ./services/template/development
-            git commit -m "Update image tag to new-tag"
+            git commit -m "Update image tag to $CIRCLE_SHA1"
             git push origin main
 
   deploy-prod-canary:
-    docker:
-      - image: google/cloud-sdk
+    executor:
+      name: gcp-gcr/default
     steps:
       - run:
           name: Placeholder for running canary deployment.yaml
           command: echo "Hello, world!"
 
   deploy-prod:
-    docker:
-      - image: google/cloud-sdk
+    executor:
+      name: gcp-gcr/default
     steps:
       - run:
           name: Placeholder for deploying full production yaml
