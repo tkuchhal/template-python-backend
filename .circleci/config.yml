@@ -61,11 +61,12 @@ jobs:
             sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml
       - run:
           name: Deploy to GKE
-          command: kubectl apply -f deployment.yaml
+          command: kubectl apply -f ~/build/services/template/development/deployment.yaml
       - run:
           name: Push the new version to git
           command: |
-            git add ./deployment.yaml
+            cd ~/build
+            git add ./services/template/development
             git commit -m "Update image tag to new-tag"
             git push origin master
 
