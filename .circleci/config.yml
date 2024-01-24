@@ -1,0 +1,88 @@
+version: 2.1
+
+orbs:
+  gcp-gcr: circleci/gcp-gcr@0.16.0
+
+executors:
+  docker-executor:
+    docker:
+      - image: cimg/python:3.11
+
+jobs:
+  build-and-test:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Authenticate with GCP
+          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
+      - run:
+          name: Configure Docker for GCR
+          command: |
+            cat ${HOME}/gcp-key.json | docker login -u _json_key --password-stdin https://gcr.io
+      - run:
+          name: Build Docker Image
+          command: |
+            docker build -t gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1 -t gcr.io/testing-234907/forty-two-research:latest .
+      - run:
+          name: Export Environment Variables
+          command: |
+            env > env_vars
+      - run:
+          name: Run Tests in Docker Image
+          command: |
+            docker run --env-file env_vars gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1 pytest /code/tests/
+      - run:
+          name: Push Docker Image to Container Registry
+          command: |
+            docker push gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1
+            docker push gcr.io/testing-234907/forty-two-research:latest
+
+  deploy:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - setup_remote_docker
+      - run:
+          name: Authenticate with GCP
+          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
+      - run:
+          name: Set up gcloud and kubectl
+          command: |
+            gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+            gcloud config set project testing-234907
+            gcloud container clusters get-credentials prod-cluster --region asia-southeast1
+      - run:
+          name: Fetch latest build config
+          command: |
+            git clone https://github.com/tkuchh/build.git ~/build
+            cd ~/build/services/template/development
+            sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml
+      - run:
+          name: Deploy to GKE
+          command: kubectl apply -f deployment.yaml
+      - run:
+          name: Push the new version to git
+          command: |
+            git add ./deployment.yaml
+            git commit -m "Update image tag to new-tag"
+            git push origin master
+
+
+workflows:
+  version: 2
+  build-test-release:
+    jobs:
+      - build-and-test:
+          context: gcp_credentials
+          filters:
+            branches:
+              only: master
+      - deploy:
+          context: gcp_credentials
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only: master

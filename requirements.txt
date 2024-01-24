@@ -1,0 +1,9 @@
+requests
+python-dotenv
+pendulum
+loguru
+fastapi
+uvicorn
+pytest
+pytest-mock
+httpx
