@@ -54,7 +54,7 @@ jobs:
           command: |
             git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
             cd ~/build/services/template/development
-            sed -i 's|image:\(.*\)/template:.*|image:\1/template:$CIRCLE_SHA1|' ./deployment.yaml
+            sed -i "s|image:\(.*\)/template:.*|image:\1/template:$CIRCLE_SHA1|" ./deployment.yaml
       - run:
           name: Deploy to GKE
           command: kubectl apply -f ~/build/services/template/development/deployment.yaml
