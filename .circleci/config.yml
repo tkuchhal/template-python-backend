@@ -158,7 +158,9 @@ workflows:
           requires:
             - deploy-dev
       - deploy-prod-canary:
-          context: gcp_credentials
+          context:
+            - gcp_credentials
+            - build_repo_access
           requires:
             - hold-for-approval
           filters:
@@ -169,7 +171,9 @@ workflows:
           requires:
             - deploy-prod-canary
       - deploy-prod:
-          context: gcp_credentials
+          context:
+            - gcp_credentials
+            - build_repo_access
           requires:
             - hold-for-canary-confirmation
           filters:
