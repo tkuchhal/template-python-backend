@@ -29,7 +29,7 @@ def get_health(response: Response):
 
     return {
         'time': pendulum.now().in_timezone('UTC').to_w3c_string(),
-        'health-checks': {
+        'health-check': {
             'loading-config': "success" if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
             'loading-secrets': "success" if os.getenv("SECRETS_VARIABLE") is not None else "fail",
         }
