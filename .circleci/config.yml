@@ -113,7 +113,7 @@ workflows:
       - deploy-prod-canary:
           context: gcp_credentials
           requires:
-            - hold
+            - hold-for-approval
           filters:
             branches:
               only: main
