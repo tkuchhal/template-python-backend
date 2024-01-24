@@ -10,7 +10,7 @@ jobs:
     steps:
       - checkout
       - gcp-gcr/gcr-auth:
-          gcloud-service-key: $GCP_SERVICE_ACCOUNT_KEY
+          gcloud-service-key: GCP_SERVICE_ACCOUNT_KEY
       - run:
           name: Build Docker Image
           command: |
