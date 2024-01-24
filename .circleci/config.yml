@@ -56,7 +56,7 @@ jobs:
       - run:
           name: Fetch latest build config
           command: |
-            git clone https://workflowr:$GITHUB_PAT/tkuchh/build.git ~/build
+            git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
             cd ~/build/services/template/development
             sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml
       - run:
