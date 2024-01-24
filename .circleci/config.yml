@@ -39,11 +39,14 @@ jobs:
             docker push gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1
             docker push gcr.io/testing-234907/forty-two-research:latest
 
-  deploy:
+  deploy-dev:
     docker:
       - image: google/cloud-sdk
     steps:
       - setup_remote_docker
+      - add_ssh_keys:
+          fingerprints:
+            - $BUILD_REPO_SSH_KEY
       - run:
           name: Authenticate with GCP
           command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
@@ -69,6 +72,21 @@ jobs:
             git commit -m "Update image tag to new-tag"
             git push origin master
 
+  deploy-prod-canary:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          name: Placeholder for running canary deployment.yaml
+          command: echo "Hello, world!"
+
+  deploy-prod:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          name: Placeholder for deploying full production yaml
+          command: echo "Hello, world!"
 
 workflows:
   version: 2
@@ -79,10 +97,34 @@ workflows:
           filters:
             branches:
               only: main
-      - deploy:
-          context: gcp_credentials
+      - deploy-dev:
+          context:
+            - gcp_credentials
+            - build_repo_access
           requires:
             - build-and-test
+          filters:
+            branches:
+              only: main
+      - hold-for-approval:
+          type: approval
+          requires:
+            - deploy-dev
+      - deploy-prod-canary:
+          context: gcp_credentials
+          requires:
+            - hold
+          filters:
+            branches:
+              only: main
+      - hold-for-canary-confirmation:
+          type: approval
+          requires:
+            - deploy-prod-canary
+      - deploy-prod:
+          context: gcp_credentials
+          requires:
+            - hold-for-canary-confirmation
           filters:
             branches:
               only: main
