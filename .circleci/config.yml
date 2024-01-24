@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Build Docker Image
           command: |
-            docker build -t gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1 -t gcr.io/testing-234907/forty-two-research:latest .
+            docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:latest .
       - run:
           name: Export Environment Variables
           command: |
@@ -32,12 +32,12 @@ jobs:
       - run:
           name: Run Tests in Docker Image
           command: |
-            docker run --env-file env_vars gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1 pytest /code/tests/
+            docker run --env-file env_vars gcr.io/testing-234907/template:$CIRCLE_SHA1 pytest /code/tests/
       - run:
           name: Push Docker Image to Container Registry
           command: |
-            docker push gcr.io/testing-234907/forty-two-research:$CIRCLE_SHA1
-            docker push gcr.io/testing-234907/forty-two-research:latest
+            docker push gcr.io/testing-234907/template:$CIRCLE_SHA1
+            docker push gcr.io/testing-234907/template:latest
 
   deploy-dev:
     docker:
