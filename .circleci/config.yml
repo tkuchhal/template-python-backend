@@ -9,7 +9,8 @@ jobs:
       name: gcp-gcr/default
     steps:
       - checkout
-      - gcp-gcr/gcr-auth
+      - gcp-gcr/gcr-auth:
+          key-file: $GCP_SERVICE_ACCOUNT_KEY
       - run:
           name: Build Docker Image
           command: |
