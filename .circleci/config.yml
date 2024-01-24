@@ -59,7 +59,7 @@ jobs:
       - run:
           name: Fetch latest build config
           command: |
-            git clone https://github.com/tkuchh/build.git ~/build
+            git clone git@github.com:tkuchh/build.git ~/build
             cd ~/build/services/template/development
             sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml
       - run:
