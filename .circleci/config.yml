@@ -3,14 +3,10 @@ version: 2.1
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
 
-executors:
-  docker-executor:
-    docker:
-      - image: cimg/python:3.11
-
 jobs:
   build-and-test:
-    executor: docker-executor
+    docker:
+      - image: google/cloud-sdk
     steps:
       - checkout
       - setup_remote_docker
@@ -58,7 +54,7 @@ jobs:
           command: |
             git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
             cd ~/build/services/template/development
-            sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml
+            sed -i 's|image: template:.*|image: template:$CIRCLE_SHA1|' ./deployment.yaml > ./deployment.yaml
       - run:
           name: Deploy to GKE
           command: kubectl apply -f ~/build/services/template/development/deployment.yaml
