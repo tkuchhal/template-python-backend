@@ -3,6 +3,56 @@ version: 2.1
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
 
+commands:
+  connect_to_kubernetes:
+    parameters:
+      project_id:
+        type: string
+      region:
+        default: asia-southeast1
+        type: string
+      cluster_name:
+        type: string
+    steps:
+      - run:
+          name: Authenticate with GCP
+          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
+      - run:
+          name: Set up gcloud and kubectl
+          command: |
+            gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+            gcloud config set project <<parameters.project_id>>
+            gcloud container clusters get-credentials <<parameters.cluster_name>> --region <<parameters.region>>
+  deploy:
+    parameters:
+      kubectl_filename:
+        type: string
+      config_path:
+        type: string
+    steps:
+      - run:
+          name: Set up git
+          command: |
+            cd ~/build
+            git config user.email "cicdrunner@template.com"
+            git config user.name "CI/CD"
+      - run:
+          name: Fetch and update latest build config
+          command: |
+            git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
+            cd ~/build/<<parameters.config_path>>
+            sed -i "s|image:\(.*\)/template:.*|image:\1/template:$CIRCLE_SHA1|" ./<<parameters.kubectl_filename>>
+      - run:
+          name: Deploy to GKE
+          command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
+      - run:
+          name: Push the new version to git
+          command: |
+            git add ./<<parameters.config_path>>
+            git commit -m "Update image tag to new-tag"
+            git push origin main
+
+
 jobs:
   build-and-test:
     docker:
@@ -39,34 +89,12 @@ jobs:
     docker:
       - image: google/cloud-sdk
     steps:
-      - setup_remote_docker
-      - run:
-          name: Authenticate with GCP
-          command: echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > ${HOME}/gcp-key.json
-      - run:
-          name: Set up gcloud and kubectl
-          command: |
-            gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-            gcloud config set project testing-234907
-            gcloud container clusters get-credentials dev-cluster --region asia-southeast1
-      - run:
-          name: Fetch and update latest build config
-          command: |
-            git clone https://workflowr:$GITHUB_PAT@github.com/tkuchh/build.git ~/build
-            cd ~/build/services/template/development
-            sed -i "s|image:\(.*\)/template:.*|image:\1/template:$CIRCLE_SHA1|" ./deployment.yaml
-      - run:
-          name: Deploy to GKE
-          command: kubectl apply -f ~/build/services/template/development/deployment.yaml
-      - run:
-          name: Push the new version to git
-          command: |
-            cd ~/build
-            git config user.email "cicdrunner@template.com"
-            git config user.name "CI/CD"
-            git add ./services/template/development
-            git commit -m "Update image tag to new-tag"
-            git push origin main
+      - connect_to_kubernetes:
+          project_id: testing-234907
+          cluster_name: dev-cluster
+      - deploy:
+          config_path: services/template/development
+          kubectl_filename: deployment.yaml
 
   deploy-prod-canary:
     docker:
