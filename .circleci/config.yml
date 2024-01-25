@@ -2,55 +2,7 @@ version: 2.1
 
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
-  deploy-orb: tkuchh/deploy-orb@0.0.5
-
-commands:
-  deploy:
-    parameters:
-      image_name:
-        type: string
-      image_tag:
-        type: string
-      kubectl_filename:
-        type: string
-      config_path:
-        type: string
-      github_access_token:
-        type: string
-        default: $GITHUB_PAT
-    steps:
-      - run:
-          name: Fetch latest build config
-          command: |
-            git clone https://workflowr:<<parameters.github_access_token>>@github.com/tkuchh/build.git ~/build
-            cd ~/build
-            git config user.email "cicdrunner@template.com"
-            git config user.name "CI/CD"
-            cd ~/build/<<parameters.config_path>>
-            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image:\1/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
-      - run:
-          name: Record previous image
-          command: export previous_image=$(kubectl get deployment <<parameters.image_name>> -o=jsonpath='{$.spec.template.spec.containers[:1].image}')
-      - run:
-          name: Deploy to GKE
-          command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
-      - run:
-          name: Record previous image
-          command: export current_image=$(kubectl get deployment <<parameters.image_name>> -o=jsonpath='{$.spec.template.spec.containers[:1].image}')
-      - run:
-          name: Record new image
-          command: |
-            kubectl annotate deployment <<parameters.image_name>> \
-            current-image="$current_image" \
-            previous-image="$previous_image" \
-            update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-      - run:
-          name: Push the new version to git
-          command: |
-            cd ~/build
-            git add ./<<parameters.config_path>>
-            git commit -m "Update image tag to new-tag"
-            git push origin main
+  deploy-orb: tkuchh/deploy-orb@0.0.7
 
 jobs:
   build-and-test:
@@ -88,7 +40,7 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: dev-cluster
-      - deploy:
+      - deploy-orb/deploy:
           config_path: services/template/development
           kubectl_filename: deployment.yaml
           image_name: template
