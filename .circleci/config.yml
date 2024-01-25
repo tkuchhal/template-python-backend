@@ -2,8 +2,7 @@ version: 2.1
 
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
-  deploy-orb: tkuchh/deploy-orb@0.0.3
-
+  deploy-orb: tkuchh/deploy-orb@0.0.4
 
 jobs:
   build-and-test:
