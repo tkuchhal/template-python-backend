@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
-  deploy-orb: tkuchh/deploy-orb@0.0.7
+  deploy-orb: tkuchh/deploy-orb@0.0.8
 
 jobs:
   build-and-test:
@@ -66,11 +66,10 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: prod-cluster
-      - deploy-orb/deploy:
+      - deploy-orb/rollback:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
           image_name: template
-          image_tag: $CIRCLE_SHA1
 
 
   deploy-prod:
@@ -93,11 +92,10 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: prod-cluster
-      - deploy-orb/deploy:
+      - deploy-orb/rollback:
           config_path: services/template/production
           kubectl_filename: deployment.yaml
           image_name: template
-          image_tag: $CIRCLE_SHA1
 
 workflows:
   version: 2
