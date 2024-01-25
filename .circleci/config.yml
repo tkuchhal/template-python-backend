@@ -122,6 +122,19 @@ jobs:
           image_name: template
           image_tag: $CIRCLE_SHA1
 
+  rollback-prod-canary:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - connect_to_kubernetes:
+          project_id: testing-234907
+          cluster_name: prod-cluster
+      - deploy:
+          config_path: services/template/production
+          kubectl_filename: deployment-canary.yaml
+          image_name: template
+          image_tag: $CIRCLE_SHA1
+
 
   deploy-prod:
     docker:
@@ -136,6 +149,18 @@ jobs:
           image_name: template
           image_tag: $CIRCLE_SHA1
 
+  rollback-prod:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - connect_to_kubernetes:
+          project_id: testing-234907
+          cluster_name: prod-cluster
+      - deploy:
+          config_path: services/template/production
+          kubectl_filename: deployment.yaml
+          image_name: template
+          image_tag: $CIRCLE_SHA1
 
 workflows:
   version: 2
@@ -168,16 +193,48 @@ workflows:
           filters:
             branches:
               only: main
-      - hold-for-canary-confirmation:
+      - confirm-deploy-to-prod:
           type: approval
           requires:
             - deploy-prod-canary
+      - confirm-rollback-canary:
+          type: approval
+          requires:
+            - deploy-prod-canary
+
+      - rollback-prod-canary:
+          context:
+            - gcp_credentials
+            - build_repo_access
+          requires:
+            - confirm-rollback-canary
+          filters:
+            branches:
+              only: main
+
       - deploy-prod:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - hold-for-canary-confirmation
+            - confirm-deploy-to-prod
+          filters:
+            branches:
+              only: main
+
+
+      - confirm-rollback-prod:
+          type: approval
+          requires:
+            - deploy-prod
+
+
+      - rollback-prod:
+          context:
+            - gcp_credentials
+            - build_repo_access
+          requires:
+            - confirm-rollback-prod
           filters:
             branches:
               only: main
