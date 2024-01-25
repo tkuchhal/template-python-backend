@@ -59,6 +59,7 @@ commands:
       - run:
           name: Push the new version to git
           command: |
+            cd ~/build
             git add ./<<parameters.config_path>>
             git commit -m "Update image tag to new-tag"
             git push origin main
