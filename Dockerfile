@@ -11,16 +11,11 @@ COPY ./requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 RUN pip install --no-cache-dir uvicorn
 
-RUN if [ -f .env ]; then \
-        sed -i '/^BUILD_TIME=/d' .env; \
-    fi; \
-    echo "BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> .env; \
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && [ -z "$(git status --porcelain)" ]; then \
-        SHA_ID=$(git rev-parse HEAD); \
+RUN if grep -q 'BUILD_TIME=' /code/.env; then \
+        sed -i "/BUILD_TIME=/c\BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" /code/.env; \
     else \
-        SHA_ID="undefined"; \
-    fi; \
-    echo "GIT_SHA_ID=$SHA_ID" >> .env
+        echo "BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> /code/.env; \
+    fi
 
 
 # 
