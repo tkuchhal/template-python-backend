@@ -56,7 +56,7 @@ jobs:
       - deploy-orb/deploy:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
-          image_name: template
+          image_name: template-canary
           image_tag: $CIRCLE_SHA1
 
   rollback-prod-canary:
@@ -69,7 +69,7 @@ jobs:
       - deploy-orb/rollback:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
-          image_name: template
+          image_name: template-canary
 
 
   deploy-prod:
@@ -96,6 +96,10 @@ jobs:
           config_path: services/template/production
           kubectl_filename: deployment.yaml
           image_name: template
+      - deploy-orb/rollback:
+          config_path: services/template/production
+          kubectl_filename: deployment-canary.yaml
+          image_name: template-canary
 
 workflows:
   version: 2
