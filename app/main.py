@@ -18,6 +18,11 @@ app = FastAPI()
 
 
 @app.get('/')
+def get_index():
+    return {"message": "OK"}
+
+
+@app.get('/health')
 def get_health(response: Response):
     if os.getenv("CONFIGMAP_VARIABLE") is None or os.getenv("SECRETS_VARIABLE") is None:
         response.status_code = 500
