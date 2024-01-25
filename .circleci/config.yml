@@ -39,6 +39,8 @@ commands:
     parameters:
       image_name:
         type: string
+      image_tag:
+        type: string
       kubectl_filename:
         type: string
       config_path:
@@ -52,7 +54,7 @@ commands:
             git config user.email "cicdrunner@template.com"
             git config user.name "CI/CD"
             cd ~/build/<<parameters.config_path>>
-            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image:\1/<<parameters.image_name>>:$CIRCLE_SHA1|" ./<<parameters.kubectl_filename>>
+            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image:\1/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
       - run:
           name: Deploy to GKE
           command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
@@ -75,7 +77,7 @@ jobs:
       - run:
           name: Build Docker Image
           command: |
-            docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:latest .
+            docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM -t gcr.io/testing-234907/template:latest .
       - run:
           name: Export Environment Variables
           command: |
@@ -90,7 +92,9 @@ jobs:
           name: Push Docker Image to Container Registry
           command: |
             docker push gcr.io/testing-234907/template:$CIRCLE_SHA1
+            docker push gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM
             docker push gcr.io/testing-234907/template:latest
+
 
   deploy-dev:
     docker:
@@ -103,6 +107,7 @@ jobs:
           config_path: services/template/development
           kubectl_filename: deployment.yaml
           image_name: template
+          image_tag: $CIRCLE_SHA1
 
   deploy-prod-canary:
     docker:
@@ -115,6 +120,7 @@ jobs:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
           image_name: template
+          image_tag: $CIRCLE_SHA1
 
 
   deploy-prod:
@@ -128,6 +134,7 @@ jobs:
           config_path: services/template/production
           kubectl_filename: deployment.yaml
           image_name: template
+          image_tag: $CIRCLE_SHA1
 
 
 workflows:
