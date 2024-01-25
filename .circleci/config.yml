@@ -75,6 +75,8 @@ jobs:
           name: Export Environment Variables
           command: |
             env > env_vars
+            echo "CONFIGMAP_VARIABLE=success" >> env_vars
+            echo "SECRETS_VARIABLE=success" >> env_vars
       - run:
           name: Run Tests in Docker Image
           command: |
