@@ -59,7 +59,7 @@ commands:
       - run:
           name: Deploy to GKE
           command: |
-            previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous_image}')"
+            previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous-image}')"
             kubectl apply -f ~/build/${config_path}/${config_file}
             current_image="${container_repo}/${image_name}:${image_tag}"
             echo "Setting previous_image to $previous_image"
