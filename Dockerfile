@@ -9,6 +9,7 @@ COPY ./requirements.txt /code/requirements.txt
 
 # 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install --no-cache-dir pytest
 RUN pip install --no-cache-dir uvicorn
 
 RUN if grep -q 'BUILD_TIME=' /code/.env; then \
