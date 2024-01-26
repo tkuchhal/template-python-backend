@@ -32,6 +32,7 @@ commands:
             echo "deployment_name:<<parameters.deployment_name>>"
             echo "image_name:<<parameters.image_name>>"
             echo "image_tag:<<parameters.image_tag>>"
+            export image_tag=<<parameters.image_tag>>
             echo "config_path:<<parameters.config_path>>"
             echo "kubectl_filename:<<parameters.kubectl_filename>>"
       - run:
@@ -46,10 +47,10 @@ commands:
           command: |
             cd ~/build/<<parameters.config_path>>
             [ -f "./<<parameters.kubectl_filename>>" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: <<parameters.kubectl_filename>>." >&2; exit 1; }
-            sed -i "s|image:.*/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
+            sed -i "s|image:.*/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:$image_tag|" ./<<parameters.kubectl_filename>>
             cat ./<<parameters.kubectl_filename>>
-            echo "<<parameters.image_tag>>""
-            grep -q "<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>" ./<<parameters.kubectl_filename>> || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
+            echo "<<parameters.image_tag>>"
+            grep -q "<<parameters.container_repo>>/<<parameters.image_name>>:$image_tag" ./<<parameters.kubectl_filename>> || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
       - run:
           name: Fetch previous image label
           command: |
@@ -61,7 +62,7 @@ commands:
       - run:
           name: Fetch new image label
           command: 
-            export current_image=<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>
+            export current_image=<<parameters.container_repo>>/<<parameters.image_name>>:$image_tag
             echo "current_image=$current_image"
       - run:
           name: Record image version in case of rollback
