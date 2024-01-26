@@ -115,7 +115,6 @@ commands:
         type: string
         default: ""
     steps:
-      - checkout
       - deploy-orb/connect_to_container_repo
       - run:
           name: Build Docker Image
@@ -149,6 +148,7 @@ jobs:
     docker:
       - image: google/cloud-sdk
     steps:
+      - checkout
       - run:
           name: Export Environment Variables
           command: |
