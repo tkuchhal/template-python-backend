@@ -176,8 +176,28 @@ jobs:
           image_name: template-canary
           deployment_name: template-canary
 
+  split-traffic-90-10:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          command: echo "Hello, world!"
 
-  deploy-prod:
+  split-traffic-70-30:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          command: echo "Hello, world!"
+
+  split-traffic-30-70:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run:
+          command: echo "Hello, world!"
+
+  full-deployment:
     docker:
       - image: google/cloud-sdk
     steps:
@@ -231,6 +251,7 @@ workflows:
           type: approval
           requires:
             - deploy-dev
+
       - deploy-prod-canary:
           context:
             - gcp_credentials
@@ -240,10 +261,7 @@ workflows:
           filters:
             branches:
               only: main
-      - confirm-deploy-to-prod:
-          type: approval
-          requires:
-            - deploy-prod-canary
+
       - confirm-rollback-canary:
           type: approval
           requires:
@@ -259,12 +277,46 @@ workflows:
             branches:
               only: main
 
-      - deploy-prod:
+      - confirm-90-10-split:
+          type: approval
+          requires:
+            - deploy-prod-canary
+
+      - split-traffic-90-10:
+          requires:
+            - confirm-90-10-split
+
+      - confirm-70-30-split:
+          type: approval
+          requires:
+            - split-traffic-90-10
+
+      - split-traffic-70-30:
+          type: approval
+          requires:
+            - confirm-70-30-split
+
+      - confirm-30-70-split:
+          type: approval
+          requires:
+            - split-traffic-70-30
+
+      - split-traffic-30-70:
+          type: approval
+          requires:
+            - confirm-30-70-split
+
+      - confirm-full-deployment:
+          type: approval
+          requires:
+            - split-traffic-30-70
+
+      - full-deployment:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-deploy-to-prod
+            - confirm-full-deployment
           filters:
             branches:
               only: main
@@ -273,7 +325,7 @@ workflows:
       - confirm-rollback-prod:
           type: approval
           requires:
-            - deploy-prod
+            - full-deployment
 
 
       - rollback-prod:
