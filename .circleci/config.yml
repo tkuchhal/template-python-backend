@@ -21,7 +21,7 @@ commands:
         default: $GITHUB_PAT
       config_path:
         type: string
-      kubectl_filename:
+      config_file:
         type: string
     steps:
       - run: 
@@ -32,7 +32,7 @@ commands:
             echo 'export image_name=<<parameters.image_name>>' >> $BASH_ENV
             echo 'export image_tag=<<parameters.image_tag>>' >> $BASH_ENV
             echo 'export config_path=<<parameters.config_path>>' >> $BASH_ENV
-            echo 'export config_file=<<parameters.kubectl_filename>>' >> $BASH_ENV
+            echo 'export config_file=<<parameters.config_file>>' >> $BASH_ENV
 
             echo "Running deployment with these inputs:"
             echo "container_repo:$container_repo"
@@ -66,11 +66,11 @@ commands:
             echo "Setting current_image to $current_image"
             kubectl annotate --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
       - run:
-          name: Push the new version to git
+          name: Push the new config file (with updated image version) to git
           command: |
             cd ~/build
             git add ./$config_path/$config_file
-            git commit -m "Update image tag to new-tag"
+            git commit -m "Deployed ${container_repo}/${image_name}:${image_tag} to ${deployment_name}"
             git push origin main
 
   rollback:
@@ -79,7 +79,7 @@ commands:
         type: string
       image_name:
         type: string
-      kubectl_filename:
+      config_file:
         type: string
       config_path:
         type: string
@@ -92,35 +92,14 @@ commands:
     steps:
       - run:
           name: Fetch previous image label
-          command: export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')
-      - run:
-          name: Fetch latest build config
-          command: |
-            git clone https://workflowr:<<parameters.github_access_token>>@github.com/tkuchh/build.git ~/build
-            cd ~/build
-            git config user.email "cicdrunner@template.com"
-            git config user.name "CI/CD"
-            cd ~/build/<<parameters.config_path>>
-            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image: $previous_image |" ./<<parameters.kubectl_filename>>
-      - run:
-          name: Deploy to GKE
-          command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
-      - run:
-          name: Fetch new image label
-          command: export current_image=$previous_image
-      - run:
-          name: Record image version in case of rollback
-          command: |
-            kubectl annotate --overwrite deployment <<parameters.deployment_name>> \
-            current-image="$current_image" \
-            update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-      - run:
-          name: Push the new version to git
-          command: |
-            cd ~/build
-            git add ./<<parameters.config_path>>
-            git commit -m "Reverted deployed image"
-            git push origin main
+          command: echo "export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')" >> $BASH_ENV
+      - deploy:
+          config_path: <<parameters.config_path>>
+          config_file: <<parameters.config_file>>
+          image_name: <<parameters.image_name>>
+          image_tag: $previous_image
+          deployment_name: <<parameters.deployment_name>>
+          
 
 jobs:
   build-and-test:
@@ -160,7 +139,7 @@ jobs:
           cluster_name: dev-cluster
       - deploy:
           config_path: services/template/development
-          kubectl_filename: deployment.yaml
+          config_file: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
           deployment_name: template
@@ -174,7 +153,7 @@ jobs:
           cluster_name: prod-cluster
       - deploy:
           config_path: services/template/production
-          kubectl_filename: deployment-canary.yaml
+          config_file: deployment-canary.yaml
           image_name: template-canary
           image_tag: $CIRCLE_SHA1
           deployment_name: template-canary
@@ -188,7 +167,7 @@ jobs:
           cluster_name: prod-cluster
       - rollback:
           config_path: services/template/production
-          kubectl_filename: deployment-canary.yaml
+          config_file: deployment-canary.yaml
           image_name: template-canary
           deployment_name: template-canary
 
@@ -222,7 +201,7 @@ jobs:
           cluster_name: prod-cluster
       - deploy:
           config_path: services/template/production
-          kubectl_filename: deployment.yaml
+          config_file: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
           deployment_name: template
@@ -236,12 +215,12 @@ jobs:
           cluster_name: prod-cluster
       - rollback:
           config_path: services/template/production
-          kubectl_filename: deployment.yaml
+          config_file: deployment.yaml
           image_name: template
           deployment_name: template
       - rollback:
           config_path: services/template/production
-          kubectl_filename: deployment-canary.yaml
+          config_file: deployment-canary.yaml
           image_name: template-canary
           deployment_name: template-canary
 
