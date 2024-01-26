@@ -73,12 +73,11 @@ commands:
           command: |
             cd ~/build
             git add ./$config_path/$config_file
-            git diff --cached --exit-code
-            if [ $? -ne 0 ]; then
+            if git diff --cached --quiet; then
+              echo "No changes to commit."
+            else
               git commit -m "Deployed ${container_repo}/${image_name}:${image_tag} to ${deployment_name}"
               git push origin main
-            else
-              echo "No changes to commit."
             fi
 
   rollback:
