@@ -123,7 +123,7 @@ commands:
       - run:
           name: Run Tests in Docker Image
           command: |
-            if [ - "<<parameters.test_runner_command>>" ]; then
+            if [ -n "<<parameters.test_runner_command>>" ]; then
               if [ -n "<<parameters.test_runner_env_file>>" ]; then
                 env_option="--env-file <<parameters.test_runner_env_file>>"
                 echo "Loading environment variables for test runner"
