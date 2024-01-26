@@ -123,11 +123,17 @@ commands:
       - run:
           name: Run Tests in Docker Image
           command: |
-            if [ - "<<parameters.test_runner_command>>" ] then
-              if [ -n "$env_file" ]; then
-                env_option="--env-file <<parameters.test_runner_env_file>>"
-                echo "Using the following environment variables for test runner"
+            if [ -n "<<parameters.test_runner_command>>" ]; then
+                echo "Test runner command detected: <<parameters.test_runner_command>>"
+            fi
+            if [ -n "<<parameters.test_runner_env_file>>" ]; then
+                echo "Environment variables for test runner detected"
                 cat <<parameters.test_runner_env_file>>
+            fi
+            if [ - "<<parameters.test_runner_command>>" ] then
+              if [ -n "<<parameters.test_runner_env_file>>" ]; then
+                env_option="--env-file <<parameters.test_runner_env_file>>"
+                echo "Loading environment variables for test runner"
               else
                 env_option=""
                 echo "No environment variables configured for test runner"
