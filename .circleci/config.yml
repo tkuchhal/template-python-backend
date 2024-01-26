@@ -27,14 +27,20 @@ commands:
       - run: 
           name: Initializing deployment
           command: |
-            echo "Running deployment with these inputs:"
-            echo "container_repo:<<parameters.container_repo>>"
-            echo "deployment_name:<<parameters.deployment_name>>"
-            echo "image_name:<<parameters.image_name>>"
+            export container_repo=<<parameters.container_repo>>
+            export deployment_name=<<parameters.deployment_name>>
+            export image_name=<<parameters.image_name>>
             export image_tag=<<parameters.image_tag>>
+            export config_path=<<parameters.config_path>>
+            export config_file=<<parameters.kubectl_filename>>
+
+            echo "Running deployment with these inputs:"
+            echo "container_repo:$container_repo"
+            echo "deployment_name:$deployment_name"
+            echo "image_name:$image_name"
             echo "image_tag:$image_tag"
-            echo "config_path:<<parameters.config_path>>"
-            echo "kubectl_filename:<<parameters.kubectl_filename>>"
+            echo "config_path:$config_path"
+            echo "config_file:$config_file"
       - run:
           name: Initialize git repo for build files
           command: |
@@ -45,29 +51,28 @@ commands:
       - run:
           name: Updating build config with new image details
           command: |
-            cd ~/build/<<parameters.config_path>>
-            [ -f "./<<parameters.kubectl_filename>>" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: <<parameters.kubectl_filename>>." >&2; exit 1; }
-            sed -i "s|image: .*/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:${image_tag}|" ./<<parameters.kubectl_filename>>
-            cat ./<<parameters.kubectl_filename>>
-            echo "<<parameters.image_tag>>"
-            grep -q "<<parameters.container_repo>>/<<parameters.image_name>>:$image_tag" ./<<parameters.kubectl_filename>> || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
+            cd ~/build/$config_path
+            [ -f "./$config_file" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: $config_file." >&2; exit 1; }
+            sed -i "s|image: .*/${image_name}:.*|image: ${container_repo}/${image_name}:${image_tag}|" ${config_file}
+            cat ./$config_File
+            grep -q "$container_repo/$image_name:$image_tag" ./$config_file || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
       - run:
           name: Fetch previous image label
           command: |
-            export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')
+            export previous_image=$(kubectl get deployment $deployment_name -o=jsonpath='{$.metadata.annotations.previous_image}')
             echo "previous_image=$previous_image"
       - run:
           name: Deploy to GKE
-          command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
+          command: kubectl apply -f ~/build/$config_path/$config_file
       - run:
           name: Fetch new image label
           command: 
-            export current_image=<<parameters.container_repo>>/<<parameters.image_name>>:$image_tag
+            export current_image=$container_repo/$image_name:$image_tag
             echo "current_image=$current_image"
       - run:
           name: Record image version in case of rollback
           command: |
-            kubectl annotate --overwrite deployment <<parameters.deployment_name>> \
+            kubectl annotate --overwrite deployment $deployment_name \
             current-image="$current_image" \
             previous-image="$previous_image" \
             update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -75,7 +80,7 @@ commands:
           name: Push the new version to git
           command: |
             cd ~/build
-            git add ./<<parameters.config_path>>
+            git add ./$config_path
             git commit -m "Update image tag to new-tag"
             git push origin main
 
