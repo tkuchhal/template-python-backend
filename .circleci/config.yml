@@ -7,23 +7,33 @@ orbs:
 commands:
   deploy:
     parameters:
+      container_repo:
+        type: string
+        default: gcr.io/testing-234907
       deployment_name:
         type: string
       image_name:
         type: string
       image_tag:
         type: string
-      kubectl_filename:
-        type: string
-      config_path:
-        type: string
       github_access_token:
         type: string
         default: $GITHUB_PAT
-      container_repo:
+      config_path:
         type: string
-        default: gcr.io/testing-234907
+      kubectl_filename:
+        type: string
     steps:
+      - run: 
+          name: Initializing deployment
+          command: |
+            echo "Running deployment with these inputs:"
+            echo "container_repo:<<parameters.container_repo>>"
+            echo "deployment_name:<<parameters.deployment_name>>"
+            echo "image_name:<<parameters.image_name>>"
+            echo "image_tag:<<parameters.image_tag>>"
+            echo "config_path:<<parameters.config_path>>"
+            echo "kubectl_filename:<<parameters.kubectl_filename>>"
       - run:
           name: Initialize git repo for build files
           command: |
