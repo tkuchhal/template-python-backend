@@ -65,7 +65,7 @@ commands:
       - run:
           name: Deploy to GKE
           command: |
-            if [ <<parameters.enable_rollback>> ]; then
+            if [ "<<parameters.enable_rollback>>" = "true" ]; then
               previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.current-image}')"
             else
               previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous-image}')"
