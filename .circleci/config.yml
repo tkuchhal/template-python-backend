@@ -25,12 +25,15 @@ commands:
         default: gcr.io/testing-234907
     steps:
       - run:
-          name: Fetch latest build config
+          name: Initialize git repo for build files
           command: |
             git clone https://workflowr:<<parameters.github_access_token>>@github.com/tkuchh/build.git ~/build
             cd ~/build
             git config user.email "cicdrunner@template.com"
             git config user.name "CI/CD"
+      - run:
+          name: Updating build config with new image details
+          command: |
             cd ~/build/<<parameters.config_path>>
             [ -f "./<<parameters.kubectl_filename>>" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: <<parameters.kubectl_filename>>." >&2; exit 1; }
             sed -i "s|image:.*/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
