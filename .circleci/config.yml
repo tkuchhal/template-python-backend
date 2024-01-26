@@ -76,7 +76,7 @@ commands:
             else
                 # If deployment does not exist, set a default value or handle accordingly
                 echo "Deployment ${deployment_name} does not exist. Proceeding with a default setup."
-                previous_image="N/A"
+                previous_image="${container_repo}/${image_name}:${image_tag}"
             fi
             
             echo "Deploying workload config"
