@@ -72,10 +72,9 @@ commands:
       - run:
           name: Record image version in case of rollback
           command: |
-            kubectl annotate --overwrite deployment ${deployment_name} \
-            current-image="${current_image}" 
-            previous-image="${previous_image}" \
-            update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "Setting previous_image to $previous_image"
+            echo "Setting current_image to $current_image"
+            kubectl annotate --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
       - run:
           name: Push the new version to git
           command: |
