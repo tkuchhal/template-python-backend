@@ -44,6 +44,13 @@ commands:
             echo "image_tag:<<parameters.image_tag>>"
             echo "config_path:<<parameters.config_path>>"
             echo "config_file:<<parameters.config_file>>"
+
+      - run:
+          name: Install yq
+          command: |
+            sudo wget -O /usr/bin/yq "https://github.com/mikefarah/yq/releases/download/v4.9.8/yq_linux_amd64"
+            sudo chmod +x /usr/bin/yq
+
       - run:
           name: Initialize git repo for build files
           command: |
@@ -51,6 +58,7 @@ commands:
             cd ~/build
             git config user.email "cicdrunner@template.com"
             git config user.name "CI/CD"
+
       - run:
           name: Updating build config with new image details
           command: |
@@ -62,6 +70,7 @@ commands:
             echo "Target config contents"
             echo "----------------------"
             cat ${config_file}
+
       - run:
           name: Deploy to GKE
           command: |
@@ -86,6 +95,7 @@ commands:
             echo "Setting previous-image to $previous_image"
             echo "Setting current-image to $current_image"
             kubectl annotate --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
       - run:
           name: Push the new config file (with updated image version) to git
           command: |
@@ -97,6 +107,28 @@ commands:
               git commit -m "Deployed ${container_repo}/${image_name}:${image_tag} to ${deployment_name}"
               git push origin main
             fi
+
+      - run:
+          name: Set deployment information in Kubernetes pods
+          command: |
+            # Fetch the current deployment configuration
+            kubectl get deployment ${deployment_name} -o yaml > deployment.yaml
+
+            # Set DEPLOY_TIME and GIT_SHA environment variables
+            DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            GIT_SHA=$CIRCLE_SHA1
+
+            # Add the DEPLOY_TIME environment variable
+            yq eval ".spec.template.spec.containers[0].env += [{name: \"DEPLOY_TIME\", value: \"$DEPLOY_TIME\"}]" -i deployment.yaml
+
+            # Add the GIT_SHA environment variable
+            yq eval ".spec.template.spec.containers[0].env += [{name: \"GIT_SHA\", value: \"$GIT_SHA\"}]" -i deployment.yaml
+
+            # Apply the modified configuration back to the cluster
+            kubectl apply -f deployment.yaml
+
+            # Clean up
+            rm deployment.yaml
 
   rollback:
     parameters:
