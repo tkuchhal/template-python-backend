@@ -57,23 +57,11 @@ commands:
             cat ./${config_file}
             grep -q "${container_repo}/${image_name}:${image_tag}" ./${config_file} || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
       - run:
-          name: Fetch previous image label
-          command: |
-            export previous_image=$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous_image}')
-            echo "previous_image=${previous_image}"
-            echo "export previous_image=${previous_image}" >> $BASH_ENV
-      - run:
           name: Deploy to GKE
-          command: kubectl apply -f ~/build/${config_path}/${config_file}
-      - run:
-          name: Fetch new image label
-          command: 
-            export current_image="${container_repo}/${image_name}:${image_tag}"
-            echo "current_image=${current_image}"
-            echo "export current_image=${current_image}" >> $BASH_ENV
-      - run:
-          name: Record image version in case of rollback
           command: |
+            previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous_image}')"
+            kubectl apply -f ~/build/${config_path}/${config_file}
+            current_image="${container_repo}/${image_name}:${image_tag}"
             echo "Setting previous_image to $previous_image"
             echo "Setting current_image to $current_image"
             kubectl annotate --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
