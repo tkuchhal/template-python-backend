@@ -23,6 +23,9 @@ commands:
         type: string
       config_file:
         type: string
+      enable_rollback:
+        type: boolean
+        default: true # Set to fall if you are already performing a rollback
     steps:
       - run: 
           name: Initializing deployment
@@ -62,7 +65,11 @@ commands:
       - run:
           name: Deploy to GKE
           command: |
-            previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.current-image}')"
+            if [ <<parameters.enable_rollback>> ]; then
+              previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.current-image}')"
+            else
+              previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous-image}')"
+            fi
             kubectl apply -f ~/build/${config_path}/${config_file}
             current_image="${container_repo}/${image_name}:${image_tag}"
             echo "Setting previous-image to $previous_image"
@@ -99,13 +106,19 @@ commands:
     steps:
       - run:
           name: Fetching previous-image
-          command: echo "export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous-image}')" >> $BASH_ENV
+          command: |
+            previous_image_full=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous-image}')
+            previous_image_tag=$(echo $previous_image_full | cut -d':' -f2)
+            echo "export previous_image_tag=$previous_image_tag" >> $BASH_ENV
+            previous_deployment=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.update-time}')
+            echo "Reverting <<parameters.deployment_name>> to image ${previous_image_full} which was deployed on ${previous_deployment}"
       - deploy:
           config_path: <<parameters.config_path>>
           config_file: <<parameters.config_file>>
           image_name: <<parameters.image_name>>
-          image_tag: $previous_image
+          image_tag: $previous_image_tag
           deployment_name: <<parameters.deployment_name>>
+          enable_rollback: false
           
   build:
     parameters:
