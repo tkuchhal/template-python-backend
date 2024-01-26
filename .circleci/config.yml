@@ -47,6 +47,7 @@ commands:
             cd ~/build/<<parameters.config_path>>
             [ -f "./<<parameters.kubectl_filename>>" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: <<parameters.kubectl_filename>>." >&2; exit 1; }
             sed -i "s|image:.*/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
+            cat ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
             grep -q '<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>' ./<<parameters.kubectl_filename>> || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
       - run:
           name: Fetch previous image label
