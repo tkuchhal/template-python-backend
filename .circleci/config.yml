@@ -65,12 +65,23 @@ commands:
       - run:
           name: Deploy to GKE
           command: |
-            if [ "<<parameters.enable_rollback>>" = "true" ]; then
-              previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.current-image}')"
+            # Check if the deployment exists
+            if kubectl get deployment ${deployment_name} > /dev/null 2>&1; then
+                # If deployment exists, get the previous_image based on the condition
+                if [ "<<parameters.enable_rollback>>" = "true" ]; then
+                    previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.current-image}')"
+                else
+                    previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous-image}')"
+                fi
             else
-              previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous-image}')"
+                # If deployment does not exist, set a default value or handle accordingly
+                echo "Deployment ${deployment_name} does not exist. Proceeding with a default setup."
+                previous_image="N/A"
             fi
+            
+            echo "Deploying workload config"
             kubectl apply -f ~/build/${config_path}/${config_file}
+
             current_image="${container_repo}/${image_name}:${image_tag}"
             echo "Setting previous-image to $previous_image"
             echo "Setting current-image to $current_image"
@@ -181,24 +192,6 @@ jobs:
           image_name: template
           test_runner_env_file: ./env_vars
           test_runner_command: pytest /code/tests/
-      # - checkout
-      # - deploy-orb/connect_to_container_repo
-      # - run:
-      #     name: Build Docker Image
-      #     command: |
-      #       docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM -t gcr.io/testing-234907/template:latest .
-
-      # - run:
-      #     name: Run Tests in Docker Image
-      #     command: |
-      #       docker run --env-file env_vars gcr.io/testing-234907/template:$CIRCLE_SHA1 pytest /code/tests/
-      # - run:
-      #     name: Push Docker Image to Container Registry
-      #     command: |
-      #       docker push gcr.io/testing-234907/template:$CIRCLE_SHA1
-      #       docker push gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM
-      #       docker push gcr.io/testing-234907/template:latest
-
 
   deploy-dev:
     docker:
@@ -357,7 +350,6 @@ workflows:
             - split-traffic-90-10
 
       - split-traffic-70-30:
-          type: approval
           requires:
             - confirm-70-30-split
 
@@ -367,7 +359,6 @@ workflows:
             - split-traffic-70-30
 
       - split-traffic-30-70:
-          type: approval
           requires:
             - confirm-30-70-split
 
