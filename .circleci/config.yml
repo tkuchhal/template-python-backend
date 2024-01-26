@@ -52,9 +52,13 @@ commands:
           name: Updating build config with new image details
           command: |
             cd ~/build/$config_path
-            [ -f "./${config_file}" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: ${config_file}." >&2; exit 1; }
+            [ -f "./${config_file}" ] || { echo "Error: deployment config file not found: ${config_file}." >&2; exit 1; }
+            echo "Setting target image to ${container_repo}/${image_name}:${image_tag}"
             sed -i "s|image: .*/${image_name}:.*|image: ${container_repo}/${image_name}:${image_tag}|" ${config_file}
             grep -q "${container_repo}/${image_name}:${image_tag}" ./${config_file} || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
+            echo "Target config contents"
+            echo "----------------------"
+            cat ${config_file}
       - run:
           name: Deploy to GKE
           command: |
@@ -69,8 +73,13 @@ commands:
           command: |
             cd ~/build
             git add ./$config_path/$config_file
-            git commit -m "Deployed ${container_repo}/${image_name}:${image_tag} to ${deployment_name}"
-            git push origin main
+            git diff --cached --exit-code
+            if [ $? -ne 0 ]; then
+              git commit -m "Deployed ${container_repo}/${image_name}:${image_tag} to ${deployment_name}"
+              git push origin main
+            else
+              echo "No changes to commit."
+            fi
 
   rollback:
     parameters:
@@ -124,7 +133,7 @@ commands:
           name: Run Tests in Docker Image
           command: |
             if [ -n "<<parameters.test_runner_command>>" ]; then
-              if [ -n "<<parameters.test_runner_env_file>>" ]; then
+              if [ -f "<<parameters.test_runner_env_file>>" ]; then
                 env_option="--env-file <<parameters.test_runner_env_file>>"
                 echo "Loading environment variables for test runner"
                 cat <<parameters.test_runner_env_file>>
