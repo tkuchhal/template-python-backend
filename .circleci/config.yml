@@ -35,12 +35,12 @@ commands:
             echo 'export config_file=<<parameters.config_file>>' >> $BASH_ENV
 
             echo "Running deployment with these inputs:"
-            echo "container_repo:$container_repo"
-            echo "deployment_name:$deployment_name"
-            echo "image_name:$image_name"
-            echo "image_tag:$image_tag"
-            echo "config_path:$config_path"
-            echo "config_file:$config_file"
+            echo "container_repo:<<parameters.container_repo>>"
+            echo "deployment_name:<<parameters.deployment_name>>"
+            echo "image_name:<<parameters.image_name>>"
+            echo "image_tag:<<parameters.image_tag>>"
+            echo "config_path:<<parameters.config_path>>"
+            echo "config_file:<<parameters.config_file>>"
       - run:
           name: Initialize git repo for build files
           command: |
@@ -113,8 +113,9 @@ commands:
         default: ""
       test_runner_command:
         type: string
-        default: pytest
+        default: ""
     steps:
+      - checkout
       - deploy-orb/connect_to_container_repo
       - run:
           name: Build Docker Image
@@ -123,12 +124,19 @@ commands:
       - run:
           name: Run Tests in Docker Image
           command: |
-            if [ -n "$env_file" ]; then
-              env_option="--env-file <<parameters.test_runner_env_file>>"
+            if [ - "<<parameters.test_runner_command>>" ] then
+              if [ -n "$env_file" ]; then
+                env_option="--env-file <<parameters.test_runner_env_file>>"
+                echo "Using the following environment variables for test runner"
+                cat <<parameters.test_runner_env_file>>
+              else
+                env_option=""
+                echo "No environment variables configured for test runner"
+              fi
+              docker run $env_option <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_SHA1 $(<<parameters.test_runner_command>>)
             else
-              env_option=""
+              echo "No test run config detected"
             fi
-            docker run $env_option <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_SHA1 $(<<parameters.test_runner_command>>)
       - run:
           name: Push Docker Image to Container Registry
           command: |
@@ -141,28 +149,34 @@ jobs:
     docker:
       - image: google/cloud-sdk
     steps:
-      - checkout
-      - deploy-orb/connect_to_container_repo
-      - run:
-          name: Build Docker Image
-          command: |
-            docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM -t gcr.io/testing-234907/template:latest .
       - run:
           name: Export Environment Variables
           command: |
             env > env_vars
             echo "CONFIGMAP_VARIABLE=success" >> env_vars
             echo "SECRETS_VARIABLE=success" >> env_vars
-      - run:
-          name: Run Tests in Docker Image
-          command: |
-            docker run --env-file env_vars gcr.io/testing-234907/template:$CIRCLE_SHA1 pytest /code/tests/
-      - run:
-          name: Push Docker Image to Container Registry
-          command: |
-            docker push gcr.io/testing-234907/template:$CIRCLE_SHA1
-            docker push gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM
-            docker push gcr.io/testing-234907/template:latest
+      - build:
+          dockerfile_path: .
+          image_name: template
+          test_runner_env_file: ./env_vars
+          test_runner_command: pytest /code/tests
+      # - checkout
+      # - deploy-orb/connect_to_container_repo
+      # - run:
+      #     name: Build Docker Image
+      #     command: |
+      #       docker build -t gcr.io/testing-234907/template:$CIRCLE_SHA1 -t gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM -t gcr.io/testing-234907/template:latest .
+
+      # - run:
+      #     name: Run Tests in Docker Image
+      #     command: |
+      #       docker run --env-file env_vars gcr.io/testing-234907/template:$CIRCLE_SHA1 pytest /code/tests/
+      # - run:
+      #     name: Push Docker Image to Container Registry
+      #     command: |
+      #       docker push gcr.io/testing-234907/template:$CIRCLE_SHA1
+      #       docker push gcr.io/testing-234907/template:$CIRCLE_BUILD_NUM
+      #       docker push gcr.io/testing-234907/template:latest
 
 
   deploy-dev:
@@ -189,7 +203,7 @@ jobs:
       - deploy:
           config_path: services/template/production
           config_file: deployment-canary.yaml
-          image_name: template-canary
+          image_name: template
           image_tag: $CIRCLE_SHA1
           deployment_name: template-canary
 
@@ -203,7 +217,7 @@ jobs:
       - rollback:
           config_path: services/template/production
           config_file: deployment-canary.yaml
-          image_name: template-canary
+          image_name: template
           deployment_name: template-canary
 
   split-traffic-90-10:
@@ -256,7 +270,7 @@ jobs:
       - rollback:
           config_path: services/template/production
           config_file: deployment-canary.yaml
-          image_name: template-canary
+          image_name: template
           deployment_name: template-canary
 
 workflows:
