@@ -60,8 +60,8 @@ commands:
           name: Fetch previous image label
           command: |
             export previous_image=$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous_image}')
-            echo 'previous_image=${previous_image}' >> $BASH_ENV
             echo "previous_image=${previous_image}"
+            echo "export previous_image=${previous_image}" >> $BASH_ENV
       - run:
           name: Deploy to GKE
           command: kubectl apply -f ~/build/${config_path}/${config_file}
@@ -69,8 +69,8 @@ commands:
           name: Fetch new image label
           command: 
             export current_image="${container_repo}/${image_name}:${image_tag}"
-            echo "current_image=$current_image"
-            echo 'echo current_image=$current_image' >> $BASH_ENV
+            echo "current_image=${current_image}"
+            echo "export current_image=${current_image}" >> $BASH_ENV
       - run:
           name: Record image version in case of rollback
           command: |
