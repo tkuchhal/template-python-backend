@@ -4,6 +4,108 @@ orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
   deploy-orb: tkuchh/deploy-orb@0.0.8
 
+commands:
+  deploy:
+    parameters:
+      deployment_name:
+        type: string
+      image_name:
+        type: string
+      image_tag:
+        type: string
+      kubectl_filename:
+        type: string
+      config_path:
+        type: string
+      github_access_token:
+        type: string
+        default: $GITHUB_PAT
+      container_repo:
+        type: string
+        default: gcr.io/testing-234907
+    steps:
+      - run:
+          name: Fetch latest build config
+          command: |
+            git clone https://workflowr:<<parameters.github_access_token>>@github.com/tkuchh/build.git ~/build
+            cd ~/build
+            git config user.email "cicdrunner@template.com"
+            git config user.name "CI/CD"
+            cd ~/build/<<parameters.config_path>>
+            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
+      - run:
+          name: Fetch previous image label
+          command: export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')
+      - run:
+          name: Deploy to GKE
+          command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
+      - run:
+          name: Fetch new image label
+          command: export current_image=<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>
+      - run:
+          name: Record image version in case of rollback
+          command: |
+            kubectl annotate --overwrite deployment <<parameters.deployment_name>> \
+            current-image="$current_image" \
+            previous-image="$previous_image" \
+            update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      - run:
+          name: Push the new version to git
+          command: |
+            cd ~/build
+            git add ./<<parameters.config_path>>
+            git commit -m "Update image tag to new-tag"
+            git push origin main
+
+  rollback:
+    parameters:
+      deployment_name:
+        type: string
+      image_name:
+        type: string
+      kubectl_filename:
+        type: string
+      config_path:
+        type: string
+      github_access_token:
+        type: string
+        default: $GITHUB_PAT
+      container_repo:
+        type: string
+        default: gcr.io/testing-234907
+    steps:
+      - run:
+          name: Fetch previous image label
+          command: export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')
+      - run:
+          name: Fetch latest build config
+          command: |
+            git clone https://workflowr:<<parameters.github_access_token>>@github.com/tkuchh/build.git ~/build
+            cd ~/build
+            git config user.email "cicdrunner@template.com"
+            git config user.name "CI/CD"
+            cd ~/build/<<parameters.config_path>>
+            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image: $previous_image |" ./<<parameters.kubectl_filename>>
+      - run:
+          name: Deploy to GKE
+          command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
+      - run:
+          name: Fetch new image label
+          command: export current_image=$previous_image
+      - run:
+          name: Record image version in case of rollback
+          command: |
+            kubectl annotate --overwrite deployment <<parameters.deployment_name>> \
+            current-image="$current_image" \
+            update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      - run:
+          name: Push the new version to git
+          command: |
+            cd ~/build
+            git add ./<<parameters.config_path>>
+            git commit -m "Reverted deployed image"
+            git push origin main
+
 jobs:
   build-and-test:
     docker:
@@ -40,11 +142,12 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: dev-cluster
-      - deploy-orb/deploy:
+      - deploy:
           config_path: services/template/development
           kubectl_filename: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
+          deployment_name: template
 
   deploy-prod-canary:
     docker:
@@ -53,11 +156,12 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: prod-cluster
-      - deploy-orb/deploy:
+      - deploy:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
           image_name: template-canary
           image_tag: $CIRCLE_SHA1
+          deployment_name: template-canary
 
   rollback-prod-canary:
     docker:
@@ -66,10 +170,11 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: prod-cluster
-      - deploy-orb/rollback:
+      - rollback:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
           image_name: template-canary
+          deployment_name: template-canary
 
 
   deploy-prod:
@@ -79,11 +184,12 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: prod-cluster
-      - deploy-orb/deploy:
+      - deploy:
           config_path: services/template/production
           kubectl_filename: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
+          deployment_name: template
 
   rollback-prod:
     docker:
@@ -92,14 +198,16 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: testing-234907
           cluster_name: prod-cluster
-      - deploy-orb/rollback:
+      - rollback:
           config_path: services/template/production
           kubectl_filename: deployment.yaml
           image_name: template
-      - deploy-orb/rollback:
+          deployment_name: template
+      - rollback:
           config_path: services/template/production
           kubectl_filename: deployment-canary.yaml
           image_name: template-canary
+          deployment_name: template-canary
 
 workflows:
   version: 2
