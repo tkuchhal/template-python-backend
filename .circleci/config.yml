@@ -27,12 +27,12 @@ commands:
       - run: 
           name: Initializing deployment
           command: |
-            export container_repo=<<parameters.container_repo>>
-            export deployment_name=<<parameters.deployment_name>>
-            export image_name=<<parameters.image_name>>
-            export image_tag=<<parameters.image_tag>>
-            export config_path=<<parameters.config_path>>
-            export config_file=<<parameters.kubectl_filename>>
+            echo 'export container_repo=<<parameters.container_repo>>' >> $BASH_ENV
+            echo 'export deployment_name=<<parameters.deployment_name>>' >> $BASH_ENV
+            echo 'export image_name=<<parameters.image_name>>' >> $BASH_ENV
+            echo 'export image_tag=<<parameters.image_tag>>' >> $BASH_ENV
+            echo 'export config_path=<<parameters.config_path>>' >> $BASH_ENV
+            echo 'export config_file=<<parameters.kubectl_filename>>' >> $BASH_ENV
 
             echo "Running deployment with these inputs:"
             echo "container_repo:$container_repo"
