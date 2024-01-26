@@ -12,6 +12,8 @@ commands:
         default: gcr.io/testing-234907
       deployment_name:
         type: string
+      namespace:
+        type: string
       image_name:
         type: string
       image_tag:
@@ -75,12 +77,12 @@ commands:
           name: Deploy to GKE
           command: |
             # Check if the deployment exists
-            if kubectl get deployment ${deployment_name} > /dev/null 2>&1; then
+            if kubectl get deployment ${deployment_name} -n <<parameters.namespace>> > /dev/null 2>&1; then
                 # If deployment exists, get the previous_image based on the condition
                 if [ "<<parameters.enable_rollback>>" = "true" ]; then
-                    previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.current-image}')"
+                    previous_image="$(kubectl get deployment ${deployment_name} -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.current-image}')"
                 else
-                    previous_image="$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous-image}')"
+                    previous_image="$(kubectl get deployment ${deployment_name} -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.previous-image}')"
                 fi
             else
                 # If deployment does not exist, set a default value or handle accordingly
@@ -94,7 +96,7 @@ commands:
             current_image="${container_repo}/${image_name}:${image_tag}"
             echo "Setting previous-image to $previous_image"
             echo "Setting current-image to $current_image"
-            kubectl annotate --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            kubectl annotate  -n <<parameters.namespace>> --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
       - run:
           name: Push the new config file (with updated image version) to git
@@ -112,7 +114,7 @@ commands:
           name: Set deployment information in Kubernetes pods
           command: |
             # Fetch the current deployment configuration
-            kubectl get deployment ${deployment_name} -o yaml > deployment.yaml
+            kubectl get deployment ${deployment_name} -n <<parameters.namespace>> -o yaml > deployment.yaml
 
             # Set DEPLOY_TIME and GIT_SHA environment variables
             export DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -123,7 +125,7 @@ commands:
             yq eval '.spec.template.spec.containers[0].env += [{"name": "GIT_SHA", "value": strenv(GIT_SHA)}]' -i deployment.yaml
 
             # Apply the modified configuration back to the cluster
-            kubectl apply -f deployment.yaml
+            kubectl apply -f deployment.yaml -n <<parameters.namespace>>
 
             # Clean up
             rm deployment.yaml
@@ -133,6 +135,8 @@ commands:
       deployment_name:
         type: string
       image_name:
+        type: string
+      namespace:
         type: string
       config_file:
         type: string
@@ -148,14 +152,15 @@ commands:
       - run:
           name: Fetching previous-image
           command: |
-            previous_image_full=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous-image}')
+            previous_image_full=$(kubectl get deployment <<parameters.deployment_name>> -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.previous-image}')
             previous_image_tag=$(echo $previous_image_full | cut -d':' -f2)
             echo "export previous_image_tag=$previous_image_tag" >> $BASH_ENV
-            previous_deployment=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.update-time}')
+            previous_deployment=$(kubectl get deployment <<parameters.deployment_name>> -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.update-time}')
             echo "Reverting <<parameters.deployment_name>> to image ${previous_image_full} which was deployed on ${previous_deployment}"
       - deploy:
           config_path: <<parameters.config_path>>
           config_file: <<parameters.config_file>>
+          namespace: <<parameters.namespace>>
           image_name: <<parameters.image_name>>
           image_tag: $previous_image_tag
           deployment_name: <<parameters.deployment_name>>
@@ -234,6 +239,7 @@ jobs:
           config_path: services/template/development
           config_file: deployment.yaml
           image_name: template
+          namespace: default
           image_tag: $CIRCLE_SHA1
           deployment_name: template
 
@@ -249,6 +255,7 @@ jobs:
           config_file: deployment-canary.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
+          namespace: default
           deployment_name: template-canary
 
   rollback-prod-canary:
@@ -262,6 +269,7 @@ jobs:
           config_path: services/template/production
           config_file: deployment-canary.yaml
           image_name: template
+          namespace: default
           deployment_name: template-canary
 
   split-traffic-90-10:
@@ -297,6 +305,7 @@ jobs:
           config_file: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
+          namespace: default
           deployment_name: template
 
   rollback-prod:
@@ -310,11 +319,13 @@ jobs:
           config_path: services/template/production
           config_file: deployment.yaml
           image_name: template
+          namespace: default
           deployment_name: template
       - rollback:
           config_path: services/template/production
           config_file: deployment-canary.yaml
           image_name: template
+          namespace: default
           deployment_name: template-canary
 
 workflows:
