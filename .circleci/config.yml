@@ -59,8 +59,8 @@ commands:
       - run:
           name: Fetch previous image label
           command: |
-            echo "export previous_image=$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous_image}')" >> $BASH_ENV
             export previous_image=$(kubectl get deployment ${deployment_name} -o=jsonpath='{$.metadata.annotations.previous_image}')
+            echo 'previous_image=${previous_image}' >> $BASH_ENV
             echo "previous_image=${previous_image}"
       - run:
           name: Deploy to GKE
@@ -68,9 +68,9 @@ commands:
       - run:
           name: Fetch new image label
           command: 
-            echo 'export current_image=${container_repo}/${image_name}:${image_tag}' >> $BASH_ENV
-            current_image="${container_repo}/${image_name}:${image_tag}"
+            export current_image="${container_repo}/${image_name}:${image_tag}"
             echo "current_image=$current_image"
+            echo 'echo current_image=$current_image' >> $BASH_ENV
       - run:
           name: Record image version in case of rollback
           command: |
