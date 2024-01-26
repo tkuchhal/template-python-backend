@@ -32,16 +32,22 @@ commands:
             git config user.email "cicdrunner@template.com"
             git config user.name "CI/CD"
             cd ~/build/<<parameters.config_path>>
-            sed -i "s|image:\(.*\)/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
+            [ -f "./<<parameters.kubectl_filename>>" ] && echo "Deployment config found" || { echo "Error: deployment config file not found: <<parameters.kubectl_filename>>." >&2; exit 1; }
+            sed -i "s|image:.*/<<parameters.image_name>>:.*|image: <<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>|" ./<<parameters.kubectl_filename>>
+            grep -q '<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>' ./<<parameters.kubectl_filename>> || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
       - run:
           name: Fetch previous image label
-          command: export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')
+          command: |
+            export previous_image=$(kubectl get deployment <<parameters.deployment_name>> -o=jsonpath='{$.metadata.annotations.previous_image}')
+            echo "previous_image=$previous_image"
       - run:
           name: Deploy to GKE
           command: kubectl apply -f ~/build/<<parameters.config_path>>/<<parameters.kubectl_filename>>
       - run:
           name: Fetch new image label
-          command: export current_image=<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>
+          command: 
+            export current_image=<<parameters.container_repo>>/<<parameters.image_name>>:<<parameters.image_tag>>
+            echo "current_image=$current_image"
       - run:
           name: Record image version in case of rollback
           command: |
