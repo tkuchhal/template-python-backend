@@ -118,11 +118,9 @@ commands:
             DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
             GIT_SHA=$CIRCLE_SHA1
 
-            # Add the DEPLOY_TIME environment variable
-            yq eval ".spec.template.spec.containers[0].env += [{name: \"DEPLOY_TIME\", value: \"$DEPLOY_TIME\"}]" -i deployment.yaml
-
-            # Add the GIT_SHA environment variable
-            yq eval ".spec.template.spec.containers[0].env += [{name: \"GIT_SHA\", value: \"$GIT_SHA\"}]" -i deployment.yaml
+            # Use single quotes for the yq expression and double quotes for Bash variables
+            yq eval '.spec.template.spec.containers[0].env += [{"name": "DEPLOY_TIME", "value": env(DEPLOY_TIME)}]' -i deployment.yaml
+            yq eval '.spec.template.spec.containers[0].env += [{"name": "GIT_SHA", "value": strenv(GIT_SHA)}]' -i deployment.yaml
 
             # Apply the modified configuration back to the cluster
             kubectl apply -f deployment.yaml
