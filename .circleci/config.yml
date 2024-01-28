@@ -9,7 +9,7 @@ commands:
     parameters:
       container_repo:
         type: string
-        default: gcr.io/testing-234907
+        default: gcr.io/tkuchhal
       deployment_name:
         type: string
       namespace:
@@ -147,7 +147,7 @@ commands:
         default: $GITHUB_PAT
       container_repo:
         type: string
-        default: gcr.io/testing-234907
+        default: gcr.io/tkuchhal
     steps:
       - run:
           name: Fetching previous-image
@@ -174,7 +174,7 @@ commands:
         type: string
       container_repo:
         type: string
-        default: gcr.io/testing-234907
+        default: gcr.io/tkuchhal
       test_runner_env_file:
         type: string
         default: ""
@@ -236,7 +236,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - deploy-orb/connect_to_kubernetes:
-          project_id: testing-234907
+          project_id: tkuchhal
           cluster_name: dev-cluster
       - deploy:
           config_path: services/template/development
@@ -251,7 +251,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - deploy-orb/connect_to_kubernetes:
-          project_id: testing-234907
+          project_id: tkuchhal
           cluster_name: prod-cluster
       - deploy:
           config_path: services/template/production
@@ -266,7 +266,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - deploy-orb/connect_to_kubernetes:
-          project_id: testing-234907
+          project_id: tkuchhal
           cluster_name: prod-cluster
       - rollback:
           config_path: services/template/production
@@ -301,7 +301,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - deploy-orb/connect_to_kubernetes:
-          project_id: testing-234907
+          project_id: tkuchhal
           cluster_name: prod-cluster
       - deploy:
           config_path: services/template/production
@@ -316,7 +316,7 @@ jobs:
       - image: google/cloud-sdk
     steps:
       - deploy-orb/connect_to_kubernetes:
-          project_id: testing-234907
+          project_id: tkuchhal
           cluster_name: prod-cluster
       - rollback:
           config_path: services/template/production
