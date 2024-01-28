@@ -33,7 +33,7 @@ def get_health(response: Response):
         'deploy-time': os.getenv('DEPLOY_TIME'),
         'git-sha': os.getenv('GIT_SHA'),
         'health-check': {
-            'loading-config': "success" if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
-            'loading-secrets': "success" if os.getenv("SECRETS_VARIABLE") is not None else "fail",
+            'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
+            'loading-secrets': os.getenv("SECRETS_VARIABLE") if os.getenv("SECRETS_VARIABLE") is not None else "fail",
         }
     }
