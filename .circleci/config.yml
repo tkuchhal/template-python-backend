@@ -182,6 +182,9 @@ commands:
         type: string
         default: ""
     steps:
+      - run:
+          name: Initializing
+          command: echo $GCP_SERVICE_ACCOUNT_KEY
       - deploy-orb/connect_to_container_repo
       - run:
           name: Build Docker Image
