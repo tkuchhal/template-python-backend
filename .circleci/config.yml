@@ -166,7 +166,7 @@ workflows:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-rollback-canary
+            - confirm-rollback-prod
           filters:
             branches:
               only: main
