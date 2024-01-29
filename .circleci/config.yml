@@ -161,7 +161,7 @@ workflows:
 
       - split-traffic-90-10:
           requires:
-            - confirm-90-10-split
+            - deploy-prod-canary
 
 
       - split-traffic-70-30:
