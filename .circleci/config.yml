@@ -4,214 +4,6 @@ orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
   deploy-orb: tkuchh/deploy-orb@0.0.8
 
-commands:
-  deploy:
-    parameters:
-      container_repo:
-        type: string
-        default: gcr.io/tkuchhal
-      deployment_name:
-        type: string
-      namespace:
-        type: string
-      image_name:
-        type: string
-      image_tag:
-        type: string
-      github_access_token:
-        type: string
-        default: $GITHUB_PAT
-      config_path:
-        type: string
-      config_file:
-        type: string
-      enable_rollback:
-        type: boolean
-        default: true # Set to fall if you are already performing a rollback
-    steps:
-      - run: 
-          name: Initializing deployment
-          command: |
-            echo 'export container_repo=<<parameters.container_repo>>' >> $BASH_ENV
-            echo 'export deployment_name=<<parameters.deployment_name>>' >> $BASH_ENV
-            echo 'export image_name=<<parameters.image_name>>' >> $BASH_ENV
-            echo 'export image_tag=<<parameters.image_tag>>' >> $BASH_ENV
-            echo 'export config_path=<<parameters.config_path>>' >> $BASH_ENV
-            echo 'export config_file=<<parameters.config_file>>' >> $BASH_ENV
-
-            echo "Running deployment with these inputs:"
-            echo "container_repo:<<parameters.container_repo>>"
-            echo "deployment_name:<<parameters.deployment_name>>"
-            echo "image_name:<<parameters.image_name>>"
-            echo "image_tag:<<parameters.image_tag>>"
-            echo "config_path:<<parameters.config_path>>"
-            echo "config_file:<<parameters.config_file>>"
-
-      - run:
-          name: Install yq
-          command: |
-            curl -L "https://github.com/mikefarah/yq/releases/download/v4.9.8/yq_linux_amd64" -o /usr/bin/yq
-            chmod +x /usr/bin/yq
-
-      - run:
-          name: Initialize git repo for build files
-          command: |
-            git clone https://workflowr:<<parameters.github_access_token>>@github.com/tkuchh/build.git ~/build
-            cd ~/build
-            git config user.email "cicdrunner@template.com"
-            git config user.name "CI/CD"
-
-      - run:
-          name: Updating build config with new image details
-          command: |
-            cd ~/build/$config_path
-            [ -f "./${config_file}" ] || { echo "Error: deployment config file not found: ${config_file}." >&2; exit 1; }
-            echo "Setting target image to ${container_repo}/${image_name}:${image_tag}"
-            sed -i "s|image: .*/${image_name}:.*|image: ${container_repo}/${image_name}:${image_tag}|" ${config_file}
-            grep -q "${container_repo}/${image_name}:${image_tag}" ./${config_file} || { echo "Error: Unable to add new image name to deployment file" >&2; exit 1; }
-            echo "Target config contents"
-            echo "----------------------"
-            cat ${config_file}
-
-      - run:
-          name: Deploy to GKE
-          command: |
-            # Check if the deployment exists
-            if kubectl get deployment ${deployment_name} -n <<parameters.namespace>> > /dev/null 2>&1; then
-                # If deployment exists, get the previous_image based on the condition
-                if [ "<<parameters.enable_rollback>>" = "true" ]; then
-                    previous_image="$(kubectl get deployment ${deployment_name} -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.current-image}')"
-                else
-                    previous_image="$(kubectl get deployment ${deployment_name} -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.previous-image}')"
-                fi
-            else
-                # If deployment does not exist, set a default value or handle accordingly
-                echo "Deployment ${deployment_name} does not exist. Proceeding with a default setup."
-                previous_image="${container_repo}/${image_name}:${image_tag}"
-            fi
-            
-            echo "Deploying workload config"
-            kubectl apply -f ~/build/${config_path}/${config_file}
-
-            current_image="${container_repo}/${image_name}:${image_tag}"
-            echo "Setting previous-image to $previous_image"
-            echo "Setting current-image to $current_image"
-            kubectl annotate  -n <<parameters.namespace>> --overwrite deployment $deployment_name current-image="$current_image" previous-image="$previous_image" update-time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-      - run:
-          name: Push the new config file (with updated image version) to git
-          command: |
-            cd ~/build
-            git add ./$config_path/$config_file
-            if git diff --cached --quiet; then
-              echo "No changes to commit."
-            else
-              git commit -m "Deployed ${container_repo}/${image_name}:${image_tag} to ${deployment_name}"
-              git push origin main
-            fi
-
-      - run:
-          name: Set deployment information in Kubernetes pods
-          command: |
-            # Fetch the current deployment configuration
-            kubectl get deployment ${deployment_name} -n <<parameters.namespace>> -o yaml > deployment.yaml
-
-            # Set DEPLOY_TIME and GIT_SHA environment variables
-            export DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-            export GIT_SHA=$CIRCLE_SHA1
-
-            # Use single quotes for the yq expression and double quotes for Bash variables
-            yq eval '.spec.template.spec.containers[0].env += [{"name": "DEPLOY_TIME", "value": env(DEPLOY_TIME)}]' -i deployment.yaml
-            yq eval '.spec.template.spec.containers[0].env += [{"name": "GIT_SHA", "value": strenv(GIT_SHA)}]' -i deployment.yaml
-
-            # Apply the modified configuration back to the cluster
-            kubectl apply -f deployment.yaml -n <<parameters.namespace>>
-
-            # Clean up
-            rm deployment.yaml
-
-  rollback:
-    parameters:
-      deployment_name:
-        type: string
-      image_name:
-        type: string
-      namespace:
-        type: string
-      config_file:
-        type: string
-      config_path:
-        type: string
-      github_access_token:
-        type: string
-        default: $GITHUB_PAT
-      container_repo:
-        type: string
-        default: gcr.io/tkuchhal
-    steps:
-      - run:
-          name: Fetching previous-image
-          command: |
-            previous_image_full=$(kubectl get deployment <<parameters.deployment_name>> -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.previous-image}')
-            previous_image_tag=$(echo $previous_image_full | cut -d':' -f2)
-            echo "export previous_image_tag=$previous_image_tag" >> $BASH_ENV
-            previous_deployment=$(kubectl get deployment <<parameters.deployment_name>> -n <<parameters.namespace>> -o=jsonpath='{$.metadata.annotations.update-time}')
-            echo "Reverting <<parameters.deployment_name>> to image ${previous_image_full} which was deployed on ${previous_deployment}"
-      - deploy:
-          config_path: <<parameters.config_path>>
-          config_file: <<parameters.config_file>>
-          namespace: <<parameters.namespace>>
-          image_name: <<parameters.image_name>>
-          image_tag: $previous_image_tag
-          deployment_name: <<parameters.deployment_name>>
-          enable_rollback: false
-          
-  build:
-    parameters:
-      dockerfile_path:
-        type: string
-      image_name:
-        type: string
-      container_repo:
-        type: string
-        default: gcr.io/tkuchhal
-      test_runner_env_file:
-        type: string
-        default: ""
-      test_runner_command:
-        type: string
-        default: ""
-    steps:
-      - run:
-          name: Initializing
-          command: echo $GCP_SERVICE_ACCOUNT_KEY
-      - deploy-orb/connect_to_container_repo
-      - run:
-          name: Build Docker Image
-          command: |
-            docker build -t <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_SHA1 -t <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_BUILD_NUM -t <<parameters.container_repo>>/<<parameters.image_name>>:latest .
-      - run:
-          name: Run Tests in Docker Image
-          command: |
-            if [ -n "<<parameters.test_runner_command>>" ]; then
-              if [ -f "<<parameters.test_runner_env_file>>" ]; then
-                env_option="--env-file <<parameters.test_runner_env_file>>"
-                echo "Loading environment variables for test runner"
-                cat <<parameters.test_runner_env_file>>
-              else
-                env_option=""
-                echo "No environment variables configured for test runner"
-              fi
-              docker run $env_option <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_SHA1 <<parameters.test_runner_command>>
-            else
-              echo "No test run config detected"
-            fi
-      - run:
-          name: Push Docker Image to Container Registry
-          command: |
-            docker push <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_SHA1
-            docker push <<parameters.container_repo>>/<<parameters.image_name>>:$CIRCLE_BUILD_NUM
-            docker push <<parameters.container_repo>>/<<parameters.image_name>>:latest
 
 jobs:
   build-and-test:
@@ -364,12 +156,12 @@ workflows:
             branches:
               only: main
 
-      - confirm-rollback-canary:
+      - confirm-rollback-prod:
           type: approval
           requires:
             - deploy-prod-canary
 
-      - rollback-prod-canary:
+      - rollback-prod:
           context:
             - gcp_credentials
             - build_repo_access
@@ -397,12 +189,12 @@ workflows:
           requires:
             - confirm-70-30-split
 
-      - confirm-30-70-split:
+      - confirm-50-50-split:
           type: approval
           requires:
             - split-traffic-70-30
 
-      - split-traffic-30-70:
+      - split-traffic-50-50:
           requires:
             - confirm-30-70-split
 
@@ -417,23 +209,6 @@ workflows:
             - build_repo_access
           requires:
             - confirm-full-deployment
-          filters:
-            branches:
-              only: main
-
-
-      - confirm-rollback-prod:
-          type: approval
-          requires:
-            - full-deployment
-
-
-      - rollback-prod:
-          context:
-            - gcp_credentials
-            - build_repo_access
-          requires:
-            - confirm-rollback-prod
           filters:
             branches:
               only: main
