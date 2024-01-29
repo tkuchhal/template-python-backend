@@ -158,27 +158,44 @@ workflows:
             branches:
               only: main
 
+      - confirm-90-10-split:
+          type: approval
+          requires:
+            - deploy-prod-canary
 
       - split-traffic-90-10:
           requires:
             - confirm-90-10-split
 
-
-      - split-traffic-70-30:
+      - confirm-70-30-split:
+          type: approval
           requires:
             - split-traffic-90-10
 
+      - split-traffic-70-30:
+          requires:
+            - confirm-70-30-split
+
+      - confirm-50-50-split:
+          type: approval
+          requires:
+            - split-traffic-70-30
 
       - split-traffic-50-50:
           requires:
-            - split-traffic-70-30
+            - confirm-50-50-split
+
+      - confirm-full-deployment:
+          type: approval
+          requires:
+            - split-traffic-50-50
 
       - full-deployment:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - split-traffic-50-50
+            - confirm-full-deployment
           filters:
             branches:
               only: main
