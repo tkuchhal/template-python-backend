@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
-  deploy-orb: tkuchh/deploy-orb@0.0.8
+  deploy-orb: tkuchh/deploy-orb@0.0.9
 
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
             env > env_vars
             echo "CONFIGMAP_VARIABLE=success" >> env_vars
             echo "SECRETS_VARIABLE=success" >> env_vars
-      - build:
+      - deploy-orb/build:
           dockerfile_path: .
           image_name: template
           test_runner_env_file: ./env_vars
@@ -30,7 +30,7 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: tkuchhal
           cluster_name: dev-cluster
-      - deploy:
+      - deploy-orb/deploy:
           config_path: services/template/development
           config_file: deployment.yaml
           image_name: template
@@ -45,7 +45,7 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: tkuchhal
           cluster_name: prod-cluster
-      - deploy:
+      - deploy-orb/deploy:
           config_path: services/template/production
           config_file: deployment-canary.yaml
           image_name: template
@@ -60,7 +60,7 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: tkuchhal
           cluster_name: prod-cluster
-      - rollback:
+      - deploy-orb/rollback:
           config_path: services/template/production
           config_file: deployment-canary.yaml
           image_name: template
@@ -95,7 +95,7 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: tkuchhal
           cluster_name: prod-cluster
-      - deploy:
+      - deploy-orb/deploy:
           config_path: services/template/production
           config_file: deployment.yaml
           image_name: template
@@ -110,13 +110,13 @@ jobs:
       - deploy-orb/connect_to_kubernetes:
           project_id: tkuchhal
           cluster_name: prod-cluster
-      - rollback:
+      - deploy-orb/rollback:
           config_path: services/template/production
           config_file: deployment.yaml
           image_name: template
           namespace: template
           deployment_name: template
-      - rollback:
+      - deploy-orb/rollback:
           config_path: services/template/production
           config_file: deployment-canary.yaml
           image_name: template
