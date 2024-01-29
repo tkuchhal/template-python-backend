@@ -81,7 +81,7 @@ jobs:
       - run:
           command: echo "Hello, world!"
 
-  split-traffic-30-70:
+  split-traffic-50-50:
     docker:
       - image: google/cloud-sdk
     steps:
@@ -196,12 +196,12 @@ workflows:
 
       - split-traffic-50-50:
           requires:
-            - confirm-30-70-split
+            - confirm-50-50-split
 
       - confirm-full-deployment:
           type: approval
           requires:
-            - split-traffic-30-70
+            - split-traffic-50-50
 
       - full-deployment:
           context:
