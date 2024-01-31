@@ -126,6 +126,7 @@ workflows:
           filters:
             branches:
               only: main
+
       - confirm-deploy-prod-canary:
           type: approval
           requires:
@@ -141,7 +142,7 @@ workflows:
             branches:
               only: main
 
-      - confirm-rollback-prod:
+      - confirm-rollback-prod-canary:
           type: approval
           requires:
             - deploy-prod-canary
@@ -151,7 +152,7 @@ workflows:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-rollback-prod
+            - confirm-rollback-prod-canary
           filters:
             branches:
               only: main
