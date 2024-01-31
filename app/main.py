@@ -30,7 +30,7 @@ def get_health(response: Response):
         'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
         'build-time': os.getenv('BUILD_TIME'),
         'deploy-time': os.getenv('DEPLOY_TIME'),
-        'git-sha': os.getenv('GIT_SHA'),
+        'current-image': os.getenv('IMAGE_NAME'),
         'health-check': {
             'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
             'loading-secrets': os.getenv("SECRETS_VARIABLE") if os.getenv("SECRETS_VARIABLE") is not None else "fail",
