@@ -30,6 +30,10 @@ jobs:
           name: Output test results
           command: |
               docker run -p 80:80 --env-file=env_vars -v /tmp/test-results:/test-results gcr.io/tkuchhal/template:$CIRCLE_SHA1 pytest tests/local --junitxml=/test-results/junit.xml
+              ls /tmp
+              echo "-----"
+              ls /tmp/test-results
+              echo "-----"
       - store_test_results:
           path: /tmp/test-results/junit.xml
 
