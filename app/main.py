@@ -26,9 +26,6 @@ def get_health(response: Response):
     if os.getenv("DB_CONNECTION_URL") is None or os.getenv("DB_USER") is None or os.getenv("DB_PASSWORD") is None:
         response.status_code = 500
 
-    os.environ["BUILD_TIME"] = pendulum.now().subtract(minutes=10).to_w3c_string()
-    os.environ["DEPLOY_TIME"] = pendulum.now().subtract(minutes=40).to_w3c_string()
-
     return {
         'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
         'image-metadata': {
