@@ -180,12 +180,17 @@ workflows:
             branches:
               only: main
 
+      - confirm-rollback-prod:
+          type: approval
+          requires:
+            - split-traffic-90-10
+
       - rollback-prod:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - split-traffic-90-10
+            - confirm-rollback-prod
           filters:
             branches:
               only: main
