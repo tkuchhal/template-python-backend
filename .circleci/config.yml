@@ -26,6 +26,12 @@ jobs:
           image_name: template
           test_runner_env_file: ./env_vars
           test_runner_command: pytest tests/local --junitxml=/test-results/junit.xml
+      - run:
+          name: Output test results
+          command: |
+              docker run -p 80:80 --env-file=env_vars -v /tmp/test-results:/test-results gcr.io/tkuchhal/template:$CIRCLE_SHA1 pytest tests/local --junitxml=/test-results/junit.xml
+      - store_test_results:
+          path: /tmp/test-results/junit.xml
 
   deploy-dev:
     docker:
