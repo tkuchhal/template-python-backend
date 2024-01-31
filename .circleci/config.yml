@@ -29,14 +29,14 @@ jobs:
       - run:
           name: Output test results
           command: |
-              docker run -p 80:80 --env-file=env_vars -v /tmp/test-results:/test-results gcr.io/tkuchhal/template:ba47d8a3171b0c2972f1a0df965e90e53c3fa50a pytest tests/local --junitxml=/test-results/junit.xml
-              ls /tmp
+              docker run -p 80:80 --env-file=env_vars -v $(pwd)test-results:/test-results gcr.io/tkuchhal/template:ba47d8a3171b0c2972f1a0df965e90e53c3fa50a pytest tests/local --junitxml=/test-results/junit.xml
+              ls $(pwd)
               echo "-----"
-              ls /tmp/test-results
+              ls $(pwd)/test-results
               echo "-----"
-              cat /tmp/test-results/junit.xml
+              cat $(pwd)/test-results/junit.xml
       - store_test_results:
-          path: /tmp/test-results/junit.xml
+          path: test-results
 
   deploy-dev:
     docker:
