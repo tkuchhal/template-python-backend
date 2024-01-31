@@ -6,6 +6,32 @@ orbs:
 
 
 jobs:
+  run-tests:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Export Environment Variables
+          command: |
+            env > env_vars
+            echo "CONFIGMAP_VARIABLE=success" >> env_vars
+            echo "SECRETS_VARIABLE=success" >> env_vars
+            
+            echo "DB_CONNECTION_URL=docker-compose-url:3306" >> env_vars
+            echo "DB_USER=docker-user" >> env_vars
+            echo "DB_PASSWORD=docker-password" >> env_vars
+      - run:
+          name: Output test results
+          command: |
+              docker run -p 80:80 --env-file=env_vars -v $(pwd)/test-results:/test-results gcr.io/tkuchhal/template:ba47d8a3171b0c2972f1a0df965e90e53c3fa50a sh -c "pytest tests/local --junitxml=/test-results/junit.xml && ls /test-results"
+              ls $(pwd)
+              echo "-----"
+              ls $(pwd)/test-results
+              echo "-----"
+              cat $(pwd)/test-results/junit.xml
+      - store_test_results:
+          path: test-results
+
   build-and-test:
     docker:
       - image: google/cloud-sdk
@@ -123,8 +149,13 @@ workflows:
   version: 2
   build-test-release:
     jobs:
+      - run-tests:
+          context: 
+              - gcp_credentials
       - build-and-test:
           context: gcp_credentials
+          requires:
+            - run-tests
           filters:
             branches:
               only: main
