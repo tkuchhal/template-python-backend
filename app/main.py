@@ -26,12 +26,9 @@ def get_health(response: Response):
     if os.getenv("DB_CONNECTION_URL") is None or os.getenv("DB_USER") is None or os.getenv("DB_PASSWORD") is None:
         response.status_code = 500
 
-    return {
+    return_payload = {
         'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
         'image-metadata': {
-            'build-time': pendulum.parse(os.getenv('BUILD_TIME')).diff_for_humans() + f" ({pendulum.parse(os.getenv('BUILD_TIME')).in_timezone('UTC')})",
-            'deploy-time': pendulum.parse(os.getenv('DEPLOY_TIME')).diff_for_humans() + f" ({pendulum.parse(os.getenv('DEPLOY_TIME')).in_timezone('UTC')})",
-            'current-image': os.getenv('IMAGE_NAME'),
         },
         'health-check': {
             'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
@@ -43,3 +40,14 @@ def get_health(response: Response):
             'db-password': os.getenv("DB_PASSWORD") if os.getenv("DB_PASSWORD") is not None else "fail",
         },
     }
+
+    if os.getenv('BUILD_TIME') is not None:
+        return_payload['image-metadata']['build-time'] = f"{pendulum.parse(os.getenv('BUILD_TIME')).diff_for_humans()} ({pendulum.parse(os.getenv('BUILD_TIME')).in_timezone('UTC')})"
+
+    if os.getenv('DEPLOY_TIME') is not None:
+        return_payload['image-metadata']['deploy-time'] = f"{pendulum.parse(os.getenv('DEPLOY_TIME')).diff_for_humans()} ({pendulum.parse(os.getenv('DEPLOY_TIME')).in_timezone('UTC')})"
+
+    if os.getenv('IMAGE_NAME') is not None:
+        return_payload['image-metadata']['current-image'] = os.getenv('IMAGE_NAME')
+
+        return return_payload
