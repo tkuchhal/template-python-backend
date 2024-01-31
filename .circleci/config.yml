@@ -29,7 +29,7 @@ jobs:
       - run:
           name: Output test results
           command: |
-              docker run -p 80:80 --env-file=env_vars -v $(pwd)test-results:/test-results gcr.io/tkuchhal/template:ba47d8a3171b0c2972f1a0df965e90e53c3fa50a pytest tests/local --junitxml=/test-results/junit.xml
+              docker run -p 80:80 --env-file=env_vars -v $(pwd)/test-results:/test-results gcr.io/tkuchhal/template:$CIRCLE_SHA1 pytest tests/local --junitxml=/test-results/junit.xml
               ls $(pwd)
               echo "-----"
               ls $(pwd)/test-results
