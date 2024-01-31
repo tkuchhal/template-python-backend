@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
-  deploy-orb: tkuchh/deploy-orb@0.0.15
+  deploy-orb: tkuchh/deploy-orb@0.0.16
 
 
 jobs:
@@ -25,8 +25,7 @@ jobs:
           dockerfile_path: .
           image_name: template
           test_runner_env_file: ./env_vars
-          test_runner_command: pytest /code/tests/local --junitxml=./test.xml
-          test_runner_junit_output_file: ./test.xml
+          test_runner_command: pytest /code/tests/local --junitxml=/test-results/test.xml
 
   deploy-dev:
     docker:
