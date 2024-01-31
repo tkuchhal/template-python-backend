@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   gcp-gcr: circleci/gcp-gcr@0.16.0
-  deploy-orb: tkuchh/deploy-orb@0.0.9
+  deploy-orb: tkuchh/deploy-orb@0.0.10
 
 
 jobs:
@@ -17,6 +17,10 @@ jobs:
             env > env_vars
             echo "CONFIGMAP_VARIABLE=success" >> env_vars
             echo "SECRETS_VARIABLE=success" >> env_vars
+            
+            echo "DB_CONNECTION_URL=docker-compose-url:3306" >> env_vars
+            echo "DB_USER=docker-user" >> env_vars
+            echo "DB_PASSWORD=docker-password" >> env_vars
       - deploy-orb/build:
           dockerfile_path: .
           image_name: template
@@ -61,20 +65,6 @@ jobs:
       - run:
           command: echo "Hello, world!"
 
-  split-traffic-70-30:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          command: echo "Hello, world!"
-
-  split-traffic-50-50:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          command: echo "Hello, world!"
-
   full-deployment:
     docker:
       - image: google/cloud-sdk
@@ -90,6 +80,20 @@ jobs:
           namespace: template
           deployment_name: template
 
+  rollback-prod-canary:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - deploy-orb/connect_to_kubernetes:
+          project_id: tkuchhal
+          cluster_name: prod-cluster
+      - deploy-orb/rollback:
+          config_path: services/template/production
+          config_file: deployment-canary.yaml
+          image_name: template
+          namespace: template
+          deployment_name: template-canary
+
   rollback-prod:
     docker:
       - image: google/cloud-sdk
@@ -103,12 +107,6 @@ jobs:
           image_name: template
           namespace: template
           deployment_name: template
-      - deploy-orb/rollback:
-          config_path: services/template/production
-          config_file: deployment-canary.yaml
-          image_name: template
-          namespace: template
-          deployment_name: template-canary
 
 workflows:
   version: 2
@@ -148,7 +146,7 @@ workflows:
           requires:
             - deploy-prod-canary
 
-      - rollback-prod:
+      - rollback-prod-canary:
           context:
             - gcp_credentials
             - build_repo_access
@@ -167,28 +165,10 @@ workflows:
           requires:
             - confirm-90-10-split
 
-      - confirm-70-30-split:
-          type: approval
-          requires:
-            - split-traffic-90-10
-
-      - split-traffic-70-30:
-          requires:
-            - confirm-70-30-split
-
-      - confirm-50-50-split:
-          type: approval
-          requires:
-            - split-traffic-70-30
-
-      - split-traffic-50-50:
-          requires:
-            - confirm-50-50-split
-
       - confirm-full-deployment:
           type: approval
           requires:
-            - split-traffic-50-50
+            - split-traffic-90-10
 
       - full-deployment:
           context:
@@ -196,6 +176,16 @@ workflows:
             - build_repo_access
           requires:
             - confirm-full-deployment
+          filters:
+            branches:
+              only: main
+
+      - rollback-prod:
+          context:
+            - gcp_credentials
+            - build_repo_access
+          requires:
+            - split-traffic-90-10
           filters:
             branches:
               only: main
