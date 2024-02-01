@@ -117,6 +117,7 @@ workflows:
           filters:
             branches:
               only: main
+
       - deploy-dev:
           context:
             - gcp_credentials
@@ -137,7 +138,7 @@ workflows:
             - gcp_credentials
             - build_repo_access
           requires:
-            - deploy-dev
+            - confirm-deploy-prod-canary
           filters:
             branches:
               only: main
@@ -176,7 +177,7 @@ workflows:
             - gcp_credentials
             - build_repo_access
           requires:
-            - deploy-prod-canary
+            - confirm-full-deployment
           filters:
             branches:
               only: main
