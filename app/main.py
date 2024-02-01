@@ -50,4 +50,4 @@ def get_health(response: Response):
     if os.getenv('IMAGE_NAME') is not None:
         return_payload['image-metadata']['current-image'] = os.getenv('IMAGE_NAME')
 
-        return return_payload
+    return return_payload
