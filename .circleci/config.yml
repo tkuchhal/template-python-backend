@@ -127,17 +127,17 @@ workflows:
             branches:
               only: main
 
-      - confirm-deploy-prod-canary:
-          type: approval
-          requires:
-            - deploy-dev
+      #      - confirm-deploy-prod-canary:
+      #          type: approval
+      #          requires:
+      #            - deploy-dev
 
       - deploy-prod-canary:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-deploy-prod-canary
+            - deploy-dev
           filters:
             branches:
               only: main
@@ -157,26 +157,26 @@ workflows:
             branches:
               only: main
 
-      - confirm-90-10-split:
-          type: approval
-          requires:
-            - deploy-prod-canary
-
-      - split-traffic-90-10:
-          requires:
-            - confirm-90-10-split
-
-      - confirm-full-deployment:
-          type: approval
-          requires:
-            - split-traffic-90-10
+      #      - confirm-90-10-split:
+      #          type: approval
+      #          requires:
+      #            - deploy-prod-canary
+      #
+      #      - split-traffic-90-10:
+      #          requires:
+      #            - confirm-90-10-split
+      #
+      #      - confirm-full-deployment:
+      #          type: approval
+      #          requires:
+      #            - split-traffic-90-10
 
       - full-deployment:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-full-deployment
+            - deploy-prod-canary
           filters:
             branches:
               only: main
