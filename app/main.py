@@ -27,6 +27,7 @@ def get_health(response: Response):
         response.status_code = 500
 
     return_payload = {
+        'test-revert': True,
         'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
         'image-metadata': {
         },
