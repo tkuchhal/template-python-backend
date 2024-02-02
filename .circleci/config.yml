@@ -177,7 +177,7 @@ workflows:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-full-deployment
+            - deploy-prod-canary
           filters:
             branches:
               only: main
