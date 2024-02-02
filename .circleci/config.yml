@@ -128,17 +128,12 @@ workflows:
             branches:
               only: main
 
-      - confirm-deploy-prod-canary:
-          type: approval
-          requires:
-            - deploy-dev
-
       - deploy-prod-canary:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-deploy-prod-canary
+            - deploy-dev
           filters:
             branches:
               only: main
