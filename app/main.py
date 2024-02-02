@@ -28,6 +28,10 @@ def get_health(response: Response):
 
     return_payload = {
         'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
+        'api-details': {
+            'api-host': os.getenv("API_HOST"),
+            'api-port': os.getenv("API_PORT"),
+        },
         'image-metadata': {
         },
         'health-check': {
