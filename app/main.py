@@ -27,7 +27,7 @@ def get_health(response: Response):
         response.status_code = 500
 
     return_payload = {
-        'THIS IS A BUG, DON"T DEPLOY THIS': True,
+        'change-number': 4,
         'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
         'image-metadata': {
         },
