@@ -21,7 +21,7 @@ jobs:
           dockerfile_path: .
           image_name: template
           test_runner_env_file: ./env_vars
-          test_runner_command: pytest tests/local --junitxml=/test-results/junit.xml
+          test_runner_command: pytest tests --junitxml=/test-results/junit.xml
 
   full-deployment:
     docker:
