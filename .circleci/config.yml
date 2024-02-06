@@ -17,7 +17,6 @@ jobs:
             env > env_vars
             echo "CONFIGMAP_VARIABLE=success" >> env_vars
             echo "SECRETS_VARIABLE=success" >> env_vars
-            
             echo "DB_CONNECTION_URL=docker-compose-url:3306" >> env_vars
             echo "DB_USER=docker-user" >> env_vars
             echo "DB_PASSWORD=docker-password" >> env_vars
