@@ -17,9 +17,6 @@ jobs:
             env > env_vars
             echo "CONFIGMAP_VARIABLE=success" >> env_vars
             echo "SECRETS_VARIABLE=success" >> env_vars
-            echo "DB_CONNECTION_URL=docker-compose-url:3306" >> env_vars
-            echo "DB_USER=docker-user" >> env_vars
-            echo "DB_PASSWORD=docker-password" >> env_vars
       - deploy-orb/build:
           dockerfile_path: .
           image_name: template
@@ -127,44 +124,10 @@ workflows:
             branches:
               only: main
 
-      - deploy-prod-canary:
-          context:
-            - gcp_credentials
-            - build_repo_access
-          requires:
-            - deploy-dev
-          filters:
-            branches:
-              only: main
-
-      - confirm-rollback-prod-canary:
-          type: approval
-          requires:
-            - deploy-prod-canary
-
-      - rollback-prod-canary:
-          context:
-            - gcp_credentials
-            - build_repo_access
-          requires:
-            - confirm-rollback-prod-canary
-          filters:
-            branches:
-              only: main
-
-      - confirm-90-10-split:
-          type: approval
-          requires:
-            - deploy-prod-canary
-
-      - split-traffic-90-10:
-          requires:
-            - confirm-90-10-split
-
       - confirm-full-deployment:
           type: approval
           requires:
-            - split-traffic-90-10
+            - deploy-dev
 
       - full-deployment:
           context:
@@ -179,7 +142,7 @@ workflows:
       - confirm-rollback-prod:
           type: approval
           requires:
-            - split-traffic-90-10
+            - full-deployment
 
       - rollback-prod:
           context:
