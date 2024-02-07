@@ -47,7 +47,7 @@ jobs:
           project_id: tkuchhal
           cluster_name: prod-cluster
       - deploy-orb/deploy:
-          config_path: services/template/production
+          config_path: services/template/production/kubectl
           config_file: deployment-canary.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
@@ -69,7 +69,7 @@ jobs:
           project_id: tkuchhal
           cluster_name: prod-cluster
       - deploy-orb/deploy:
-          config_path: services/template/production
+          config_path: services/template/production/kubectl
           config_file: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
@@ -84,7 +84,7 @@ jobs:
           project_id: tkuchhal
           cluster_name: prod-cluster
       - deploy-orb/rollback:
-          config_path: services/template/production
+          config_path: services/template/production/kubectl
           config_file: deployment-canary.yaml
           image_name: template
           namespace: template
@@ -98,7 +98,7 @@ jobs:
           project_id: tkuchhal
           cluster_name: prod-cluster
       - deploy-orb/rollback:
-          config_path: services/template/production
+          config_path: services/template/production/kubectl
           config_file: deployment.yaml
           image_name: template
           namespace: template
