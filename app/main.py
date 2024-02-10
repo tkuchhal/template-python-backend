@@ -1,10 +1,8 @@
 import os
-from fastapi import Response
 import pendulum
 from fastapi import FastAPI
 from loguru import logger
 import dotenv
-import requests
 
 import sys
 
@@ -21,18 +19,12 @@ app = FastAPI()
 @app.get('/health')
 def get_health():
     try:
-        response = requests.get('https://httpbin.org/ip')
-        response.raise_for_status()
-
         return_payload = {
             'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
             'health-check': {
                 'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
                 'loading-secrets': os.getenv("SECRETS_VARIABLE") if os.getenv("SECRETS_VARIABLE") is not None else "fail",
             },
-            'environment': {
-                'outbound-ip': response.json().get('origin'),
-            }
         }
     except Exception as e:
         return_payload = {'error': str(e)}
