@@ -124,32 +124,17 @@ workflows:
             branches:
               only: main
 
-      - confirm-full-deployment:
-          type: approval
-          requires:
-            - deploy-dev
+#      - confirm-full-deployment:
+      #          type: approval
+      #          requires:
+      #            - deploy-dev
 
       - full-deployment:
           context:
             - gcp_credentials
             - build_repo_access
           requires:
-            - confirm-full-deployment
-          filters:
-            branches:
-              only: main
-
-      - confirm-rollback-prod:
-          type: approval
-          requires:
-            - full-deployment
-
-      - rollback-prod:
-          context:
-            - gcp_credentials
-            - build_repo_access
-          requires:
-            - confirm-rollback-prod
+            - deploy-dev
           filters:
             branches:
               only: main
