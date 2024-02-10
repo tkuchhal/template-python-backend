@@ -31,35 +31,12 @@ jobs:
           project_id: tkuchhal
           cluster_name: dev-cluster
       - deploy-orb/deploy:
-          config_path: services/template/development
+          config_path: services/template/development/kubectl
           config_file: deployment.yaml
           image_name: template
           namespace: template
           image_tag: $CIRCLE_SHA1
           deployment_name: template
-
-
-  deploy-prod-canary:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - deploy-orb/connect_to_kubernetes:
-          project_id: tkuchhal
-          cluster_name: prod-cluster
-      - deploy-orb/deploy:
-          config_path: services/template/production/kubectl
-          config_file: deployment-canary.yaml
-          image_name: template
-          image_tag: $CIRCLE_SHA1
-          namespace: template
-          deployment_name: template-canary
-
-  split-traffic-90-10:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - run:
-          command: echo "Hello, world!"
 
   full-deployment:
     docker:
@@ -73,34 +50,6 @@ jobs:
           config_file: deployment.yaml
           image_name: template
           image_tag: $CIRCLE_SHA1
-          namespace: template
-          deployment_name: template
-
-  rollback-prod-canary:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - deploy-orb/connect_to_kubernetes:
-          project_id: tkuchhal
-          cluster_name: prod-cluster
-      - deploy-orb/rollback:
-          config_path: services/template/production/kubectl
-          config_file: deployment-canary.yaml
-          image_name: template
-          namespace: template
-          deployment_name: template-canary
-
-  rollback-prod:
-    docker:
-      - image: google/cloud-sdk
-    steps:
-      - deploy-orb/connect_to_kubernetes:
-          project_id: tkuchhal
-          cluster_name: prod-cluster
-      - deploy-orb/rollback:
-          config_path: services/template/production/kubectl
-          config_file: deployment.yaml
-          image_name: template
           namespace: template
           deployment_name: template
 
@@ -124,7 +73,7 @@ workflows:
             branches:
               only: main
 
-#      - confirm-full-deployment:
+      #      - confirm-full-deployment:
       #          type: approval
       #          requires:
       #            - deploy-dev
