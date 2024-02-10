@@ -3,6 +3,7 @@ import pendulum
 from fastapi import FastAPI
 from loguru import logger
 import dotenv
+import requests
 
 import sys
 
@@ -30,3 +31,10 @@ def get_health():
         return_payload = {'error': str(e)}
 
     return return_payload
+
+
+@app.get('/network')
+def get_network():
+    response = requests.get('https://httpbin.org/ip')
+    response.raise_for_status()
+    return {'outbound-ip': response.json().get('origin')}
