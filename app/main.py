@@ -20,17 +20,21 @@ app = FastAPI()
 @app.get('/')
 @app.get('/health')
 def get_health():
-    response = requests.get('https://httpbin.org/ip')
+    try:
+        response = requests.get('https://httpbin.org/ip')
+        response.raise_for_status()
 
-    return_payload = {
-        'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
-        'health-check': {
-            'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
-            'loading-secrets': os.getenv("SECRETS_VARIABLE") if os.getenv("SECRETS_VARIABLE") is not None else "fail",
-        },
-        'environment': {
-            'outbound-ip': response.json().get('origin'),
+        return_payload = {
+            'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
+            'health-check': {
+                'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
+                'loading-secrets': os.getenv("SECRETS_VARIABLE") if os.getenv("SECRETS_VARIABLE") is not None else "fail",
+            },
+            'environment': {
+                'outbound-ip': response.json().get('origin'),
+            }
         }
-    }
+    except Exception as e:
+        return_payload = {'error': str(e)}
 
     return return_payload
