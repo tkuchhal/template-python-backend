@@ -32,9 +32,9 @@ def get_health():
 
     return return_payload
 
-
-@app.get('/network')
-def get_network():
-    response = requests.get('https://httpbin.org/ip')
-    response.raise_for_status()
-    return {'outbound-ip': response.json().get('origin')}
+#
+# @app.get('/network')
+# def get_network():
+#     response = requests.get('https://httpbin.org/ip')
+#     response.raise_for_status()
+#     return {'outbound-ip': response.json().get('origin')}
