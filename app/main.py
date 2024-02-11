@@ -15,6 +15,10 @@ dotenv.load_dotenv()
 
 app = FastAPI()
 
+# Load environment variables once when the application starts
+configmap_variable = os.getenv("CONFIGMAP_VARIABLE", "fail")
+secrets_variable = os.getenv("SECRETS_VARIABLE", "fail")
+
 
 @app.get('/')
 @app.get('/health')
@@ -23,11 +27,12 @@ def get_health():
         return_payload = {
             'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
             'health-check': {
-                'loading-config': os.getenv("CONFIGMAP_VARIABLE") if os.getenv("CONFIGMAP_VARIABLE") is not None else "fail",
-                'loading-secrets': os.getenv("SECRETS_VARIABLE") if os.getenv("SECRETS_VARIABLE") is not None else "fail",
+                'loading-config': configmap_variable,
+                'loading-secrets': secrets_variable,
             },
         }
     except Exception as e:
+        logger.error(f"An error occurred in get_health: {e}")
         return_payload = {'error': str(e)}
 
     return return_payload
@@ -35,6 +40,11 @@ def get_health():
 
 @app.get('/network')
 def get_network():
-    response = requests.get('https://httpbin.org/ip')
-    response.raise_for_status()
-    return {'outbound-ip': response.json().get('origin')}
+    try:
+        response = requests.get('https://httpbin.org/ip')
+        response.raise_for_status()
+        logger.info(f"Response from https://httpbin.org/ip: {response.json().get('origin')}")
+        return {'outbound-ip': response.json().get('origin')}
+    except requests.exceptions.RequestException as e:
+        logger.error(f"An error occurred in get_network: {e}")
+        return {'error': str(e)}
