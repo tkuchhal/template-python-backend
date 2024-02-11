@@ -1,4 +1,4 @@
-name: Docker
+name: Build, test and publish image
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -70,7 +70,7 @@ jobs:
       - name: Run tests
         run: |
           docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
-          docker exec test-container pytest tests/ --junitxml=pytest_report.xml
+          docker exec test-container pytest tests/ --junitxml=/app/pytest_report.xml
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
