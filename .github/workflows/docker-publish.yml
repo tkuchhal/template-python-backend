@@ -75,19 +75,10 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }} pytest /tests --junitxml=pytest_report.xml
-      #
-      #      - name: Run Docker container
-      #        id: container
-      #        run: |
-      #          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ steps.build-and-push.outputs.digest }}
-      #
-      #      - name: Run pytest tests
-      #        run: |
-      #          docker exec test-container pytest/tests --junitxml=pytest_report.xml
+          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }} pytest /tests --junitxml=/app/pytest_report.xml
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
-          files: pytest_report.xml, /app/pytest_report.xml
+          files: pytest_report.xml
