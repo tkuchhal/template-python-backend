@@ -71,6 +71,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run tests
+        run: |
+          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }} pytest/tests --junitxml=pytest_report.xml
       #
       #      - name: Run Docker container
       #        id: container
@@ -80,9 +84,9 @@ jobs:
       #      - name: Run pytest tests
       #        run: |
       #          docker exec test-container pytest/tests --junitxml=pytest_report.xml
-#
-#      - name: Publish Unit Test Results
-#        uses: EnricoMi/publish-unit-test-result-action@v1
-#        if: always()
-#        with:
-#          files: pytest_report.xml
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: pytest_report.xml, /app/pytest_report.xml
