@@ -82,6 +82,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Run Docker container
+        id: container
+        run: |
+          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ steps.build-and-push.outputs.digest }}
+
+      - name: Run pytest tests
+        run: |
+          docker exec test-container pytest/tests --junitxml=pytest_report.xml
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: pytest_report.xml
+
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
       # repository is public to avoid leaking data.  If you would like to publish
