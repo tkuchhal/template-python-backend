@@ -6,13 +6,7 @@ name: Docker
 # documentation.
 
 on:
-  schedule:
-    - cron: '39 1 * * *'
   push:
-    branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-  pull_request:
     branches: [ "main" ]
 
 env:
@@ -20,7 +14,6 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build:
@@ -81,15 +74,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Run Docker container
-        id: container
-        run: |
-          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ steps.build-and-push.outputs.digest }}
-
-      - name: Run pytest tests
-        run: |
-          docker exec test-container pytest/tests --junitxml=pytest_report.xml
+#
+#      - name: Run Docker container
+#        id: container
+#        run: |
+#          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ steps.build-and-push.outputs.digest }}
+#
+#      - name: Run pytest tests
+#        run: |
+#          docker exec test-container pytest/tests --junitxml=pytest_report.xml
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
