@@ -55,18 +55,16 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Export the image hash for later steps to use
-        run: echo "DIGEST=${{ steps.build-and-push.outputs.digest }}" >> $GITHUB_ENV
 
   test:
     needs: build
     runs-on: ubuntu-latest
-    permissions: read-all
+    permissions: write-all
 
     steps:
       # Login against a Docker registry except on PR
@@ -80,7 +78,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.DIGEST }}
+          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ github.sha }}
           docker exec test-container pytest tests/ --junitxml=/app/pytest_report.xml
 
       - name: Publish Unit Test Results
@@ -88,3 +86,14 @@ jobs:
         if: always()
         with:
           files: ${{ github.workspace }}/pytest_report.xml
+
+  deploy-dev:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - name: Deploy to dev
+        run: |
+          echo "Deploying to dev"
+          echo "Using image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@$${{ github.sha }}"
