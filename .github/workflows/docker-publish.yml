@@ -14,7 +14,7 @@ env:
   REGISTRY: asia-southeast1-docker.pkg.dev
   REPOSITORY: tkuchhal/containers
   IMAGE_NAME: template
-  GITHUB_BUILD_REPO: tkuchhal/build
+  GITHUB_BUILD_REPO: https://github.com/tkuchhal/build.git
   DEPLOYMENT_FILE_PATH: modules/kubernetes-deployment/template/deployment.yaml
 
 
@@ -118,6 +118,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+
     steps:
       - name: Checkout the repository containing the deployment file
         uses: actions/checkout@v3
