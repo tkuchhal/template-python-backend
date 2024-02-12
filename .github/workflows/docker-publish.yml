@@ -15,8 +15,8 @@ env:
   REPOSITORY: tkuchhal/containers
   IMAGE_NAME: template
   GITHUB_BUILD_REPO: tkuchhal/build
-  DEPLOYMENT_FILE_PATH: modules/kubernetes-deployment/template/deployment.yaml
-
+  DEPLOYMENT_FILE_PATH_DEV: modules/kubernetes-deployment/template/development/deployment.yaml
+  DEPLOYMENT_FILE_PATH_PROD: modules/kubernetes-deployment/template/production/deployment.yaml
   BUILD_REPO_WORKSPACE: ${{ github.workspace }}/build-repo
 
 jobs:
@@ -108,7 +108,7 @@ jobs:
       - name: Update the deployment YAML file using yq
         run: |
           cd ${{ env.BUILD_REPO_WORKSPACE }}
-          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH }}
+          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH_DEV }}
           NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
 
@@ -117,36 +117,50 @@ jobs:
           cd ${{ env.BUILD_REPO_WORKSPACE }}
           git config user.name cicd-user
           git config user.email cicd-user@github.com
-          git add ${{ env.DEPLOYMENT_FILE_PATH }}
+          git add ${{ env.DEPLOYMENT_FILE_PATH_DEV }}
+          if git diff --cached --quiet; then
+              echo "No changes to commit."
+          else
+              git commit -m "Deployed ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+              git push origin main
+          fi
+          cd ${{ github.workspace }}
+          rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
+  
+
+  deploy-prod:
+    needs: update-dev-deployment-file
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions: write-all
+
+    steps:
+      - name: Checkout the repository containing the deployment file
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.GITHUB_BUILD_REPO }}
+          ref: main
+          token: ${{ secrets.GH_TOKEN }}
+          path: ${{ env.BUILD_REPO_WORKSPACE }}
+
+      - name: Install yq
+        run: |
+          sudo snap install yq
+
+      - name: Update the deployment YAML file using yq
+        run: |
+          cd ${{ env.BUILD_REPO_WORKSPACE }}
+          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH_DEV }}
+          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
+
+      - name: Commit and push the changes
+        run: |
+          cd ${{ env.BUILD_REPO_WORKSPACE }}
+          git config user.name cicd-user
+          git config user.email cicd-user@github.com
+          git add ${{ env.DEPLOYMENT_FILE_PATH_DEV }}
           git commit -m "Update deployment image to ${{ github.sha }}"
           git push
-
-  #
-  #
-  #  deploy-dev:
-  #    needs: test
-  #    runs-on: ubuntu-latest
-  #    permissions: write-all
-  #
-  #    steps:
-  #      - name: Authenticate with GCP
-  #        uses: google-github-actions/auth@v2
-  #        with:
-  #          credentials_json: ${{ secrets.GCP_SA_KEY }}
-  #
-  #      - name: Authenticate Docker with GCP
-  #        run: |
-  #          gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
-  #
-  #      - name: Set up Cloud SDK
-  #        uses: google-github-actions/setup-gcloud@v2
-  #        with:
-  #          project_id: ${{ vars.GKE_PROJECT }}
-  #
-  #      - name: Connect to Kubernetes cluster
-  #        uses: google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f
-  #        with:
-  #          project_id: ${{ vars.GKE_PROJECT }}
-  #          cluster_name: ${{ vars.DEV_CLUSTER_NAME }}
-  #          location: ${{ vars.GKE_LOCATION }}
-
+          cd ${{ github.workspace }} && rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
