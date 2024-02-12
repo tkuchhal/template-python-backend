@@ -103,7 +103,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@1bee7de035d65ec5da40a31f8589e240eba8fde5
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GKE_PROJECT }}
+          project_id: ${{ github.GKE_PROJECT }}
 
       # Configure Docker to use the gcloud command-line tool as a credential
       # helper for authentication
@@ -113,6 +113,7 @@ jobs:
       # Get the GKE credentials so we can deploy to the cluster
       - uses: google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f
         with:
-          cluster_name: ${{ env.DEV_CLUSTER_NAME }}
-          location: ${{ env.GKE_LOCATION }}
+          project_id: ${{ github.GKE_PROJECT }}
+          cluster_name: ${{ github.DEV_CLUSTER_NAME }}
+          location: ${{ github.GKE_LOCATION }}
           credentials: ${{ secrets.GCP_SA_KEY }}
