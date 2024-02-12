@@ -11,8 +11,8 @@ on:
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY: gcr.io
-  REPOSITORY: tkuchhal
+  REGISTRY: asia-southeast1-docker.pkg.dev
+  REPOSITORY: tkuchhal/containers
   IMAGE_NAME: template
 
 
