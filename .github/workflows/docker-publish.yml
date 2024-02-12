@@ -160,7 +160,12 @@ jobs:
           cd ${{ env.BUILD_REPO_WORKSPACE }}
           git config user.name cicd-user
           git config user.email cicd-user@github.com
-          git add ${{ env.DEPLOYMENT_FILE_PATH_DEV }}
-          git commit -m "Update deployment image to ${{ github.sha }}"
-          git push
-          cd ${{ github.workspace }} && rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
+          git add ${{ env.DEPLOYMENT_FILE_PATH_PROD }}
+          if git diff --cached --quiet; then
+              echo "No changes to commit."
+          else
+              git commit -m "Deployed ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+              git push origin main
+          fi
+          cd ${{ github.workspace }}
+          rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
