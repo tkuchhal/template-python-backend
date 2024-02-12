@@ -21,44 +21,6 @@ env:
 
 jobs:
 
-
-  update-deployment-file:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - name: Checkout the repository containing the deployment file
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ env.GITHUB_BUILD_REPO }}
-          ref: main
-          token: ${{ secrets.GH_TOKEN }}
-          path: ${{ env.BUILD_REPO_WORKSPACE }}
-
-
-      - name: Install yq
-        run: |
-          sudo snap install yq
-
-      - name: Update the deployment YAML file using yq
-        run: |
-          cd ${{ env.BUILD_REPO_WORKSPACE }}
-          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH }}
-          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
-
-      - name: Commit and push the changes
-        run: |
-          cd ${{ env.BUILD_REPO_WORKSPACE }}
-          git config user.name cicd-user
-          git config user.email cicd-user@github.com
-          git add ${{ env.DEPLOYMENT_FILE_PATH }}
-          git commit -m "Update deployment image to ${{ github.sha }}"
-          git push
-
-
   build:
     runs-on: ubuntu-latest
     permissions: write-all
@@ -97,7 +59,7 @@ jobs:
           cache-to: type=gha,mode=max
 
 
-  test:
+  test-image:
     needs: build
     runs-on: ubuntu-latest
     permissions: write-all
@@ -115,13 +77,50 @@ jobs:
       - name: Run tests
         run: |
           docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker exec test-container pytest tests/ --junitxml=/app/pytest_report.xml
+          docker exec test-container pytest tests/local --junitxml=/app/pytest_report.xml
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
           files: ${{ github.workspace }}/pytest_report.xml
+
+  update-dev-deployment-file:
+    needs: test-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout the repository containing the deployment file
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.GITHUB_BUILD_REPO }}
+          ref: main
+          token: ${{ secrets.GH_TOKEN }}
+          path: ${{ env.BUILD_REPO_WORKSPACE }}
+
+      - name: Install yq
+        run: |
+          sudo snap install yq
+
+      - name: Update the deployment YAML file using yq
+        run: |
+          cd ${{ env.BUILD_REPO_WORKSPACE }}
+          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH }}
+          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
+
+      - name: Commit and push the changes
+        run: |
+          cd ${{ env.BUILD_REPO_WORKSPACE }}
+          git config user.name cicd-user
+          git config user.email cicd-user@github.com
+          git add ${{ env.DEPLOYMENT_FILE_PATH }}
+          git commit -m "Update deployment image to ${{ github.sha }}"
+          git push
+
   #
   #
   #  deploy-dev:
