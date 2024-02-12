@@ -107,7 +107,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: "tkuchhal"
+          project_id: ${{ vars.GKE_PROJECT }}
 
       - name: Use gcloud CLI
         run: gcloud info
@@ -123,9 +123,9 @@ jobs:
       #      - run: |-
       #          gcloud --quiet auth configure-docker
 
-      # Get the GKE credentials so we can deploy to the cluster
-#      - uses: google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f
-#        with:
-#          project_id: "tkuchhal"
-#          cluster_name: "dev-cluster"
-#          location: "asia-southeast1"
+      # Get the GKE credentials, so we can deploy to the cluster
+      - uses: google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f
+        with:
+          project_id: ${{ vars.GKE_PROJECT }}
+          cluster_name: ${{ vars.DEV_CLUSTER_NAME }}
+          location: ${{ vars.GKE_LOCATION }}
