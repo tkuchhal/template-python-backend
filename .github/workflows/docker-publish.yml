@@ -17,6 +17,7 @@ env:
   GITHUB_BUILD_REPO: tkuchhal/build
   DEPLOYMENT_FILE_PATH: modules/kubernetes-deployment/template/deployment.yaml
 
+  BUILD_REPO_WORKSPACE: ${{ github.workspace }}/build-repo
 
 jobs:
 
@@ -34,7 +35,7 @@ jobs:
           repository: ${{ env.GITHUB_BUILD_REPO }}
           ref: main
           token: ${{ secrets.GH_TOKEN }}
-          path: 'build-repo'
+          path: ${{ env.BUILD_REPO_WORKSPACE }}
 
 
       - name: Install yq
@@ -43,13 +44,14 @@ jobs:
 
       - name: Update the deployment YAML file using yq
         run: |
+          cd ${{ env.BUILD_REPO_WORKSPACE }}
           FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH }}
           NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
 
       - name: Commit and push the changes
         run: |
-          cd build-repo
+          cd ${{ env.BUILD_REPO_WORKSPACE }}
           git config user.name cicd-user
           git config user.email cicd-user@github.com
           git add ${{ env.DEPLOYMENT_FILE_PATH }}
