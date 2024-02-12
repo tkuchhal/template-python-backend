@@ -13,7 +13,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: gcr.io
   REPOSITORY: tkuchhal
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: template
 
 
 jobs:
@@ -72,7 +72,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker exec test-container pytest tests/ --junitxml=/app/pytest_report.xml
 
       - name: Publish Unit Test Results
