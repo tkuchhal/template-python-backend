@@ -113,7 +113,6 @@ jobs:
       # Get the GKE credentials so we can deploy to the cluster
       - uses: google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f
         with:
-          project_id: ${{ github.GKE_PROJECT }}
-          cluster_name: ${{ github.DEV_CLUSTER_NAME }}
-          location: ${{ github.GKE_LOCATION }}
-          credentials: ${{ secrets.GCP_SA_KEY }}
+          project_id: "tkuchhal"
+          cluster_name: "dev-cluster"
+          location: "asia-southeast1"
