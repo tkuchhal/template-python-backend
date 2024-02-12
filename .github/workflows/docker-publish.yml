@@ -28,7 +28,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout the repository containing the deployment file
+      - name: Checkout the repository containing the deployment file/s
         uses: actions/checkout@v3
         with:
           repository: ${{ env.GITHUB_BUILD_REPO }}
