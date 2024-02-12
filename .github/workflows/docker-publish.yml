@@ -60,9 +60,27 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Export the image hash for later steps to use
+        run: echo "DIGEST=${{ steps.build-and-push.outputs.digest }}" >> $GITHUB_ENV
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: read-all
+
+    steps:
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run tests
         run: |
-          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
+          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.DIGEST }}
           docker exec test-container pytest tests/ --junitxml=/app/pytest_report.xml
 
       - name: Publish Unit Test Results
