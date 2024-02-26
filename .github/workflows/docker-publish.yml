@@ -26,7 +26,7 @@ jobs:
     uses: tkuchhal/build/.github/workflows/build.yaml@main
     with:
       image_name: template
-      dockerfile_path: "."
+    #      dockerfile_path: "."
     #      test_run_command: "pip install -r requirements.txt && pytest tests/local --junitxml=pytest_report.xml"
     secrets: inherit
 
