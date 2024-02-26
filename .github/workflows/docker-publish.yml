@@ -20,6 +20,12 @@ env:
   BUILD_REPO_WORKSPACE: ${{ github.workspace }}/build-repo
 
 jobs:
+  call-reusable-build:
+    uses: tkuchhal/build/.github/workflows/build.yaml@main
+    with:
+      image_name: ${{ env.IMAGE_NAME }}
+      dockerfile_path: "./Dockerfile"
+      test_run_command: "pytest tests/local --junitxml=pytest_report.xml"
 
   build:
     runs-on: ubuntu-latest
