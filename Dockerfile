@@ -19,7 +19,7 @@ RUN if grep -q 'BUILD_TIME=' /code/.env; then \
         echo "BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> /code/.env; \
     fi
 
-
+#
 # 
 COPY ./app /code/app
 COPY ./tests /code/tests
