@@ -28,7 +28,7 @@ jobs:
       image_name: template
       dockerfile_path: "./Dockerfile"
       test_run_command: "pytest tests/local --junitxml=pytest_report.xml"
-      gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
+#      gcp_sa_key: ${{ secrets.GCP_SA_KEY }}
 
   build:
     runs-on: ubuntu-latest
