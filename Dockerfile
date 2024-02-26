@@ -20,7 +20,6 @@ RUN if grep -q 'BUILD_TIME=' /code/.env; then \
     fi
 
 #
-# 
 COPY ./app /code/app
 COPY ./tests /code/tests
 
