@@ -31,6 +31,7 @@ def get_health():
                 'loading-config': configmap_variable,
                 'loading-secrets': secrets_variable,
             },
+            'deploy-test': True,
         }
     except Exception as e:
         logger.error(f"An error occurred in get_health: {e}")
