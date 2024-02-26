@@ -42,7 +42,9 @@ jobs:
     secrets: inherit
 
   deploy-image-prod:
-    needs: deploy-image-dev
+    needs:
+      - deploy-image-dev
+      - build
     uses: tkuchhal/build/.github/workflows/deploy.yaml@main
     with:
       namespace: template
