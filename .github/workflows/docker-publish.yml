@@ -41,7 +41,7 @@ jobs:
     needs: build
     uses: tkuchhal/build/.github/workflows/deploy.yaml@main
     with:
-      namespace: tempalte
+      namespace: template
       deployment_name: template
       image_url: ${{ needs.build.outputs.image_url }}
       deployment_file_path: "services/template/production/kubectl/deployment.yaml"
