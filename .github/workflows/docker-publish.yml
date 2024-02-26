@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check image url
-        run: echo ${{ build-image.outputs.image_url }}
+        run: echo ${{ needs.build-image.outputs.image_url }}
 
 #  build:
 #    runs-on: ubuntu-latest
