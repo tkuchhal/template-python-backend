@@ -20,7 +20,6 @@ env:
   DEPLOYMENT_FILE_PATH_DEV: modules/kubernetes-deployment/template/development/deployment.yaml
   DEPLOYMENT_FILE_PATH_PROD: modules/kubernetes-deployment/template/production/deployment.yaml
   BUILD_REPO_WORKSPACE: ${{ github.workspace }}/build-repo
-  GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
 jobs:
   call-reusable-build:
@@ -29,7 +28,7 @@ jobs:
       image_name: template
       dockerfile_path: "./Dockerfile"
       test_run_command: "pytest tests/local --junitxml=pytest_report.xml"
-      gcp_sa_key: ${{ env.GCP_SA_KEY }}
+    secrets: inherit
 
   build:
     runs-on: ubuntu-latest
