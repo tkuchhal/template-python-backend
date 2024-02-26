@@ -37,150 +37,150 @@ jobs:
       - name: Check image url
         run: echo ${{ needs.build-image.outputs.image_url }}
 
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
-
-      - name: Authenticate with GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Authenticate Docker with GCP
-        run: |
-          gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}
-
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
-        with:
-          context: .
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-
-  test-image:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions: write-all
-
-    steps:
-      - name: Authenticate with GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Authenticate Docker with GCP
-        run: |
-          gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
-
-      - name: Run tests
-        run: |
-          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker exec test-container pytest tests/local --junitxml=/app/pytest_report.xml
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        if: always()
-        with:
-          files: ${{ github.workspace }}/pytest_report.xml
-
-  update-dev-deployment-file:
-    needs: test-image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - name: Checkout the repository containing the deployment file
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ env.GITHUB_BUILD_REPO }}
-          ref: main
-          token: ${{ secrets.GH_TOKEN }}
-          path: ${{ env.BUILD_REPO_WORKSPACE }}
-
-      - name: Install yq
-        run: |
-          sudo snap install yq
-
-      - name: Update the deployment YAML file using yq
-        run: |
-          cd ${{ env.BUILD_REPO_WORKSPACE }}
-          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH_DEV }}
-          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
-
-      - name: Commit and push the changes
-        run: |
-          cd ${{ env.BUILD_REPO_WORKSPACE }}
-          git config user.name cicd-user
-          git config user.email cicd-user@github.com
-          git add ${{ env.DEPLOYMENT_FILE_PATH_DEV }}
-          if git diff --cached --quiet; then
-              echo "No changes to commit."
-          else
-              git commit -m "Deployed ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-              git push origin main
-          fi
-          cd ${{ github.workspace }}
-          rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
-  
-
-  deploy-prod:
-    needs: update-dev-deployment-file
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    permissions: write-all
-
-    steps:
-      - name: Checkout the repository containing the deployment file
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ env.GITHUB_BUILD_REPO }}
-          ref: main
-          token: ${{ secrets.GH_TOKEN }}
-          path: ${{ env.BUILD_REPO_WORKSPACE }}
-
-      - name: Install yq
-        run: |
-          sudo snap install yq
-
-      - name: Update the deployment YAML file using yq
-        run: |
-          cd ${{ env.BUILD_REPO_WORKSPACE }}
-          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH_DEV }}
-          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
-
-      - name: Commit and push the changes
-        run: |
-          cd ${{ env.BUILD_REPO_WORKSPACE }}
-          git config user.name cicd-user
-          git config user.email cicd-user@github.com
-          git add ${{ env.DEPLOYMENT_FILE_PATH_PROD }}
-          if git diff --cached --quiet; then
-              echo "No changes to commit."
-          else
-              git commit -m "Deployed ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-              git push origin main
-          fi
-          cd ${{ github.workspace }}
-          rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
+#  build:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+#
+#      - name: Authenticate with GCP
+#        uses: google-github-actions/auth@v2
+#        with:
+#          credentials_json: ${{ secrets.GCP_SA_KEY }}
+#
+#      - name: Authenticate Docker with GCP
+#        run: |
+#          gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+#
+#      - name: Extract Docker metadata
+#        id: meta
+#        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+#        with:
+#          images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}
+#
+#      - name: Build and push Docker image
+#        id: build-and-push
+#        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+#        with:
+#          context: .
+#          push: true
+#          tags: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+#          labels: ${{ steps.meta.outputs.labels }}
+#          cache-from: type=gha
+#          cache-to: type=gha,mode=max
+#
+#
+#  test-image:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    permissions: write-all
+#
+#    steps:
+#      - name: Authenticate with GCP
+#        uses: google-github-actions/auth@v2
+#        with:
+#          credentials_json: ${{ secrets.GCP_SA_KEY }}
+#
+#      - name: Authenticate Docker with GCP
+#        run: |
+#          gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+#
+#      - name: Run tests
+#        run: |
+#          docker run -d --name test-container -v ${{ github.workspace }}:/app ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+#          docker exec test-container pytest tests/local --junitxml=/app/pytest_report.xml
+#
+#      - name: Publish Unit Test Results
+#        uses: EnricoMi/publish-unit-test-result-action@v1
+#        if: always()
+#        with:
+#          files: ${{ github.workspace }}/pytest_report.xml
+#
+#  update-dev-deployment-file:
+#    needs: test-image
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: write
+#      id-token: write
+#
+#    steps:
+#      - name: Checkout the repository containing the deployment file
+#        uses: actions/checkout@v3
+#        with:
+#          repository: ${{ env.GITHUB_BUILD_REPO }}
+#          ref: main
+#          token: ${{ secrets.GH_TOKEN }}
+#          path: ${{ env.BUILD_REPO_WORKSPACE }}
+#
+#      - name: Install yq
+#        run: |
+#          sudo snap install yq
+#
+#      - name: Update the deployment YAML file using yq
+#        run: |
+#          cd ${{ env.BUILD_REPO_WORKSPACE }}
+#          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH_DEV }}
+#          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+#          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
+#
+#      - name: Commit and push the changes
+#        run: |
+#          cd ${{ env.BUILD_REPO_WORKSPACE }}
+#          git config user.name cicd-user
+#          git config user.email cicd-user@github.com
+#          git add ${{ env.DEPLOYMENT_FILE_PATH_DEV }}
+#          if git diff --cached --quiet; then
+#              echo "No changes to commit."
+#          else
+#              git commit -m "Deployed ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+#              git push origin main
+#          fi
+#          cd ${{ github.workspace }}
+#          rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
+#
+#
+#  deploy-prod:
+#    needs: update-dev-deployment-file
+#    runs-on: ubuntu-latest
+#    environment:
+#      name: production
+#    permissions: write-all
+#
+#    steps:
+#      - name: Checkout the repository containing the deployment file
+#        uses: actions/checkout@v3
+#        with:
+#          repository: ${{ env.GITHUB_BUILD_REPO }}
+#          ref: main
+#          token: ${{ secrets.GH_TOKEN }}
+#          path: ${{ env.BUILD_REPO_WORKSPACE }}
+#
+#      - name: Install yq
+#        run: |
+#          sudo snap install yq
+#
+#      - name: Update the deployment YAML file using yq
+#        run: |
+#          cd ${{ env.BUILD_REPO_WORKSPACE }}
+#          FILE_PATH=${{ env.DEPLOYMENT_FILE_PATH_DEV }}
+#          NEW_IMAGE="${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+#          yq e -i ".spec.template.spec.containers[0].image = \"$NEW_IMAGE\"" $FILE_PATH
+#
+#      - name: Commit and push the changes
+#        run: |
+#          cd ${{ env.BUILD_REPO_WORKSPACE }}
+#          git config user.name cicd-user
+#          git config user.email cicd-user@github.com
+#          git add ${{ env.DEPLOYMENT_FILE_PATH_PROD }}
+#          if git diff --cached --quiet; then
+#              echo "No changes to commit."
+#          else
+#              git commit -m "Deployed ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+#              git push origin main
+#          fi
+#          cd ${{ github.workspace }}
+#          rm -Rf ${{ env.BUILD_REPO_WORKSPACE }}
