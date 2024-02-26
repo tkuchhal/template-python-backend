@@ -22,13 +22,20 @@ env:
   BUILD_REPO_WORKSPACE: ${{ github.workspace }}/build-repo
 
 jobs:
-  call-reusable-build:
+  build-image:
     uses: tkuchhal/build/.github/workflows/build.yaml@main
     with:
       image_name: template
       dockerfile_path: "./Dockerfile"
-      test_run_command: "pytest tests/local --junitxml=pytest_report.xml"
+      test_run_command: "pip install -r requirements.txt && pytest tests/local --junitxml=pytest_report.xml"
     secrets: inherit
+
+  test-built-image:
+    needs: build-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check image url
+        run: echo ${{ needs.build-image.outputs.image_url }}
 
   build:
     runs-on: ubuntu-latest
