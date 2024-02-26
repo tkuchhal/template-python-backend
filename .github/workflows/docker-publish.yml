@@ -23,7 +23,7 @@ jobs:
   call-reusable-build:
     uses: tkuchhal/build/.github/workflows/build.yaml@main
     with:
-      image_name: ${{ env.IMAGE_NAME }}
+      image_name: template
       dockerfile_path: "./Dockerfile"
       test_run_command: "pytest tests/local --junitxml=pytest_report.xml"
 
