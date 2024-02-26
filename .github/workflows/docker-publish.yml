@@ -22,20 +22,31 @@ env:
   BUILD_REPO_WORKSPACE: ${{ github.workspace }}/build-repo
 
 jobs:
-  build-image:
+  build:
     uses: tkuchhal/build/.github/workflows/build.yaml@main
     with:
       image_name: template
-#      dockerfile_path: "."
-#      test_run_command: "pip install -r requirements.txt && pytest tests/local --junitxml=pytest_report.xml"
+      dockerfile_path: "."
+      test_run_command: "pip install -r requirements.txt && pytest tests/local --junitxml=pytest_report.xml"
     secrets: inherit
 
   test-built-image:
-    needs: build-image
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Check image url
-        run: echo ${{ needs.build-image.outputs.image_url }}
+        run: echo ${{ needs.build.outputs.image_url }}
+
+  deploy-image:
+    needs: build
+    uses: tkuchhal/build/.github/workflows/deploy.yaml@main
+    with:
+      namespace: tempalte
+      deployment_name: template
+      image_url: ${{ needs.build.outputs.image_url }}
+      deployment_file_path: "."
+    secrets: inherit
+
 
 #  build:
 #    runs-on: ubuntu-latest
