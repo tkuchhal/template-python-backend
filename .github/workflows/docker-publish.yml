@@ -32,6 +32,7 @@ jobs:
 
   deploy-image-dev:
     needs: build
+    environment: development
     uses: tkuchhal/build/.github/workflows/deploy.yaml@main
     with:
       namespace: template
@@ -46,6 +47,7 @@ jobs:
       - deploy-image-dev
       - build
     uses: tkuchhal/build/.github/workflows/deploy.yaml@main
+    environment: production
     with:
       namespace: template
       deployment_name: template
