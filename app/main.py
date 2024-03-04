@@ -25,7 +25,6 @@ secrets_variable = os.getenv("SECRETS_VARIABLE", "fail")
 def get_health():
     try:
         return_payload = {
-            'testing-github-actions': 'success',
             'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
             'health-check': {
                 'loading-config': configmap_variable,
