@@ -22,14 +22,14 @@ jobs:
     secrets: inherit
 
 
-  deploy-image:
-    uses: tkuchhal/build/.github/workflows/deploy.yaml@main
-    needs: build
-    with:
-      namespace: template
-      deployment_name: template
-      image_name: template
-      image_tag: ${{ github.sha }}
-      deployment_file_path: "services/template/production/kubectl/deployment.yaml"
-      target_cluster: prod-cluster
-    secrets: inherit
+#  deploy-image:
+#    uses: tkuchhal/build/.github/workflows/deploy.yaml@main
+#    needs: build
+#    with:
+#      namespace: template
+#      deployment_name: template
+#      image_name: template
+#      image_tag: ${{ github.sha }}
+#      deployment_file_path: "services/template/production/kubectl/deployment.yaml"
+#      target_cluster: prod-cluster
+#    secrets: inherit
