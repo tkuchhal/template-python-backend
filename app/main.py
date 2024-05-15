@@ -26,6 +26,7 @@ def get_health():
     try:
         return_payload = {
             'current-time': pendulum.now().in_timezone('UTC').to_w3c_string(),
+            'build-time': os.getenv('BUILD_TIME', 'unknown'),
             'health-check': {
                 'loading-config': configmap_variable,
                 'loading-secrets': secrets_variable,
