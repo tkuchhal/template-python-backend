@@ -21,8 +21,6 @@ jobs:
       test_run_command: "pip install -r requirements.txt && pytest tests/local --junitxml=pytest_report.xml"
     secrets: inherit
 
-
-
   deploy-image:
     uses: tkuchhal/build/.github/workflows/deploy.yaml@main
     needs: build
