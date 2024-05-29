@@ -1,6 +1,8 @@
 import os
 import pendulum
 from fastapi import FastAPI
+from .adapters.redis.main import redis_instance
+from .adapters.postgres.main import PostgresAdapter
 from loguru import logger
 import dotenv
 import requests
@@ -30,6 +32,10 @@ def get_health():
             'health-check': {
                 'loading-config': configmap_variable,
                 'loading-secrets': secrets_variable,
+            },
+            'infrastructure': {
+                'redis': redis_instance.ping(),
+                'database': PostgresAdapter().ping(),
             },
             'status': 'working',
         }
