@@ -7,3 +7,5 @@ uvicorn
 pytest
 pytest-mock
 httpx
+celery==5.2.2
+redis==4.1.4
