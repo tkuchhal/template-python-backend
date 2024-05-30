@@ -37,7 +37,7 @@ def api_client(postgres_container: PostgresContainer,
                redis_container: RedisContainer) -> TestClient:
     os.environ['ENVIRONMENT'] = 'test'
     os.environ['DATABASE_URL'] = postgres_container.get_connection_url()
-    os.environ['REDIS_URL'] = f'redis://{redis_container.get_container_host_ip()}:{redis_container.get_exposed_port(6379)}/0'
+    os.environ['REDIS_URL'] = f'redis://{redis_container.get_container_host_ip()}:{redis_container.get_exposed_port(6379)}'
     os.environ['MONGO_URL'] = f'{mongodb_container.get_connection_url()}'
     from app.main import app
     client = TestClient(app)
