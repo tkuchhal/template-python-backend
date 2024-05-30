@@ -9,21 +9,22 @@ dotenv.load_dotenv()
 
 class RedisAdapter:
     _instance = None
+    _redis_url = None
 
-    def __new__(cls):
+    def __new__(cls, redis_url):
         if cls._instance is None:
             cls._instance = super(RedisAdapter, cls).__new__(cls)
             cls._instance._connection = None
+            cls._redis_url = redis_url
         return cls._instance
 
     @property
     def connection(self):
         if self._connection is None:
-            redis_url = os.getenv('REDIS_URL')
-            if redis_url is None:
+            if self._redis_url is None:
                 raise ValueError("REDIS_URL environment variable not set")
 
-            url = urlparse(redis_url)
+            url = urlparse(self._redis_url)
             self._connection = redis.Redis(
                 connection_pool=redis.ConnectionPool(
                     host=url.hostname,
@@ -36,12 +37,12 @@ class RedisAdapter:
 
         return self._connection
 
-    def ping(self):
+    async def ping(self) -> (bool, str):
         try:
-            return self.connection.ping()
+            return self.connection.ping(), 'ok'
         except redis.RedisError as e:
             logger.error(f"Failed to ping Redis: {e}")
-            return False
+            return False, e
 
     def get(self, key):
         try:
@@ -64,6 +65,3 @@ class RedisAdapter:
             self.connection.delete(key)
         except redis.RedisError as e:
             logger.error(f"Failed to delete key {key}: {e}")
-
-
-redis_instance = RedisAdapter()

@@ -7,11 +7,13 @@ services:
     environment:
       - CONFIGMAP_VARIABLE=${CONFIGMAP_VARIABLE}
       - SECRETS_VARIABLE=${SECRETS_VARIABLE}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/test_db
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/test_db
       - REDIS_URL=redis://redis:6379
+      - MONGO_URL=mongodb://mongodb:27017/
     depends_on:
       - redis
       - postgres
+      - mongodb
 
   redis:
     image: redis:latest
@@ -27,3 +29,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=test_db
 
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"

@@ -1,17 +1,26 @@
+# API Server related
 requests
 python-dotenv
 pendulum
 loguru
 fastapi
 uvicorn
+
+# Test related
 pytest
+testcontainers
+testcontainers-postgres
+testcontainers-mongodb
+testcontainers-redis
 pytest-mock
 httpx
 
-# Redis
+# Queue management & Caching
 celery==5.2.2
 redis==4.1.4
 
 # Databases
 psycopg2-binary
 sqlmodel
+asyncpg #Async operations with Postgres
+pymongo
