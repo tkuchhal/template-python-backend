@@ -20,6 +20,3 @@ RUN if grep -q 'BUILD_TIME=' /code/.env; then \
 
 COPY ./app /code/app
 COPY ./tests /code/tests
-CMD ["uvicorn", "app.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "80"]
-
-EXPOSE 80/tcp
