@@ -11,7 +11,7 @@ import time
 
 @pytest.fixture(scope='session')
 def postgres_container() -> PostgresContainer:
-    container = PostgresContainer("postgres:latest")
+    container = PostgresContainer("postgres:latest", dbname='test')
     container.start()
     yield container
     container.stop()
