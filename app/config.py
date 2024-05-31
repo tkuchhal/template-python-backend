@@ -12,6 +12,7 @@ class ConfigManager:
     _db_instance: Union[PostgresAdapter, None] = None
     _redis_instance: Union[RedisAdapter, None] = None
     _mongodb_instance: Union[MongoDBAdapter, None] = None
+    _migrations_run: bool = False
 
     @staticmethod
     def initialize():
@@ -27,7 +28,9 @@ class ConfigManager:
         if ConfigManager._mongodb_instance is None:
             ConfigManager._mongodb_instance = MongoDBAdapter(mongodb_url=os.getenv('MONGO_URL'))
 
-        models.run_migrations(db_instance=ConfigManager._db_instance)
+        if not ConfigManager._migrations_run:
+            ConfigManager._migrations_run = True
+            models.run_migrations(db_instance=ConfigManager._db_instance)
 
     @classmethod
     def get_redis_adapter(cls) -> RedisAdapter:
