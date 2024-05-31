@@ -32,3 +32,15 @@ jobs:
       deployment_file_path: "services/template/production/kubectl/deployment.yaml"
       target_cluster: prod-cluster
     secrets: inherit
+
+  deploy-image-worker:
+    uses: tkuchhal/build/.github/workflows/deploy.yaml@main
+    needs: build
+    with:
+      namespace: template-worker
+      deployment_name: template-worker
+      image_name: template-worker
+      image_tag: ${{ github.sha }}
+      deployment_file_path: "services/template/production/kubectl/deployment-worker.yaml"
+      target_cluster: prod-cluster
+    secrets: inherit
