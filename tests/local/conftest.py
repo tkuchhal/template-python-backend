@@ -13,6 +13,8 @@ import time
 def postgres_container() -> PostgresContainer:
     container = PostgresContainer("postgres:latest")
     container.start()
+    container._create_connection_url = lambda dialect, driver=None, user=None, password=None, host=None, port=None, dbname=None: \
+        f"{dialect}://{user}:{password}@{host}:{port}/{dbname}"
     yield container
     container.stop()
 
