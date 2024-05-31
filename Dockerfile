@@ -4,6 +4,8 @@ RUN apk add --no-cache bash curl
 
 # 
 WORKDIR /code
+ENV PYTHONPATH=/code
+
 
 # 
 COPY ./requirements.txt /code/requirements.txt
