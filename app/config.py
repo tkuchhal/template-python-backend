@@ -21,14 +21,18 @@ class ConfigManager:
             # environment variables without getting overridden
             dotenv.load_dotenv()
 
-        if ConfigManager._db_instance is None:
+        db_configured: bool = os.getenv('DATABASE_URL') is not None
+        redis_configured: bool = os.getenv('REDIS_URL') is not None
+        mongodb_configured: bool = os.getenv('MONGO_URL') is not None
+
+        if ConfigManager._db_instance is None and db_configured:
             ConfigManager._db_instance = PostgresAdapter(db_url=os.getenv('DATABASE_URL'))
-        if ConfigManager._redis_instance is None:
+        if ConfigManager._redis_instance is None and redis_configured:
             ConfigManager._redis_instance = RedisAdapter(redis_url=os.getenv('REDIS_URL'))
-        if ConfigManager._mongodb_instance is None:
+        if ConfigManager._mongodb_instance is None and mongodb_configured:
             ConfigManager._mongodb_instance = MongoDBAdapter(mongodb_url=os.getenv('MONGO_URL'))
 
-        if not ConfigManager._migrations_run:
+        if not ConfigManager._migrations_run and db_configured and ConfigManager._db_instance.ping():
             ConfigManager._migrations_run = True
             models.run_migrations(db_instance=ConfigManager._db_instance)
 
