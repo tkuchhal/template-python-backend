@@ -4,7 +4,6 @@ from uuid import uuid4
 from app.models.main import TestTable
 from app.config import ConfigManager
 import random
-from app.tasks import task_definitions
 
 
 def test_index(api_client):
@@ -58,6 +57,7 @@ def test_db_adapter():
 
 
 def test_celery(celery):
+    from app.tasks import task_definitions
     job = task_definitions.add.delay(1, 2)
     assert job.id
     assert job.status
