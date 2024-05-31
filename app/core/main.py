@@ -36,5 +36,6 @@ async def get_health_status() -> dict:
         'status': 'ok' if all([redis_status, database_status, mongodb_status]) else 'error',
     }
     if return_payload.get('status') != 'ok':
+        logger.error("One or more services are not healthy", return_payload)
         raise Exception("One or more services are not healthy", return_payload)
     return return_payload

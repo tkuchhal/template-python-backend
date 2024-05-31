@@ -16,6 +16,7 @@ async def health_check():
         health_status = await get_health_status()
         return health_status
     except Exception as e:
+        logger.error(f"An error occurred in health_check: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
