@@ -1,43 +1,86 @@
 # app/celery_config.py
 import pytest
 from fastapi.testclient import TestClient
-from testcontainers.redis import RedisContainer
-from testcontainers.mongodb import MongoDbContainer
-from pymongo import MongoClient
-from testcontainers.postgres import PostgresContainer
+from testcontainers.core.container import DockerContainer
 import os
 import time
+from pymongo import MongoClient
 
 
 @pytest.fixture(scope='session')
-def postgres_container() -> PostgresContainer:
-    container = PostgresContainer("postgres:16.3-alpine")
+def postgres_container() -> DockerContainer:
+    container = DockerContainer("postgres:latest")
+    container.with_env("POSTGRES_USER", "test")
+    container.with_env("POSTGRES_PASSWORD", "test")
+    container.with_env("POSTGRES_DB", "test_db")
+    container.with_exposed_ports(5432)
     container.start()
+
+    # Wait for PostgreSQL to become ready
+    timeout = 30  # seconds
+    start_time = time.time()
+
+    while True:
+        try:
+            connection_url = f"postgresql://test:test@{container.get_container_host_ip()}:{container.get_exposed_port(5432)}/test_db"
+            # Attempt to connect to the PostgreSQL server to verify it is ready
+            import psycopg2
+            conn = psycopg2.connect(connection_url)
+            conn.close()
+            break
+        except Exception as e:
+            if time.time() - start_time > timeout:
+                container.stop()
+                raise TimeoutError(f"PostgreSQL container did not become ready in {timeout} seconds.") from e
+            time.sleep(1)
+
     yield container
     container.stop()
 
 
 @pytest.fixture(scope='session')
-def redis_container() -> RedisContainer:
-    container = RedisContainer("redis:latest").with_exposed_ports(6379)
-    container.start()
-    yield container
-    container.stop()
-
-
-@pytest.fixture(scope='session')
-def mongodb_container() -> MongoDbContainer:
-    container = MongoDbContainer("mongo:latest").with_exposed_ports(27017)
+def redis_container() -> DockerContainer:
+    container = DockerContainer("redis:latest")
+    container.with_exposed_ports(6379)
     container.start()
 
-    # Wait for MongoDB to become ready
-    connection_url = container.get_connection_url()
-    client = MongoClient(connection_url)
+    # Wait for Redis to become ready
     timeout = 10  # seconds
     start_time = time.time()
 
     while True:
         try:
+            import redis
+            client = redis.Redis(
+                host=container.get_container_host_ip(),
+                port=container.get_exposed_port(6379),
+            )
+            client.ping()
+            break
+        except Exception as e:
+            if time.time() - start_time > timeout:
+                container.stop()
+                raise TimeoutError(f"Redis container did not become ready in {timeout} seconds.") from e
+            time.sleep(1)
+
+    yield container
+    container.stop()
+
+
+@pytest.fixture(scope='session')
+def mongodb_container() -> DockerContainer:
+    container = DockerContainer("mongo:latest")
+    container.with_exposed_ports(27017)
+    container.start()
+
+    # Wait for MongoDB to become ready
+    timeout = 10  # seconds
+    start_time = time.time()
+
+    while True:
+        try:
+            connection_url = f"mongodb://{container.get_container_host_ip()}:{container.get_exposed_port(27017)}"
+            client = MongoClient(connection_url)
             # The ismaster command is fast and does not require auth.
             client.admin.command('ismaster')
             break
@@ -52,26 +95,26 @@ def mongodb_container() -> MongoDbContainer:
 
 
 @pytest.fixture(scope='session')
-def api_client(postgres_container: PostgresContainer,
-               mongodb_container: MongoDbContainer,
-               redis_container: RedisContainer) -> TestClient:
+def api_client(postgres_container: DockerContainer,
+               mongodb_container: DockerContainer,
+               redis_container: DockerContainer) -> TestClient:
     os.environ['ENVIRONMENT'] = 'test'
-    os.environ['DATABASE_URL'] = postgres_container.get_connection_url()
+    os.environ['DATABASE_URL'] = f"postgresql://test:test@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/test_db"
     os.environ['REDIS_URL'] = f'redis://{redis_container.get_container_host_ip()}:{redis_container.get_exposed_port(6379)}'
-    os.environ['MONGO_URL'] = f'{mongodb_container.get_connection_url()}'
+    os.environ['MONGO_URL'] = f"mongodb://{mongodb_container.get_container_host_ip()}:{mongodb_container.get_exposed_port(27017)}"
     from app.main import app
     client = TestClient(app)
     yield client
 
 
 @pytest.fixture(scope='session')
-def celery(postgres_container: PostgresContainer,
-           mongodb_container: MongoDbContainer,
-           redis_container: RedisContainer):
+def celery(postgres_container: DockerContainer,
+           mongodb_container: DockerContainer,
+           redis_container: DockerContainer):
     os.environ['ENVIRONMENT'] = 'test'
-    os.environ['DATABASE_URL'] = postgres_container.get_connection_url()
+    os.environ['DATABASE_URL'] = f"postgresql://test:test@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/test_db"
     os.environ['REDIS_URL'] = f'redis://{redis_container.get_container_host_ip()}:{redis_container.get_exposed_port(6379)}'
-    os.environ['MONGO_URL'] = f'{mongodb_container.get_connection_url()}'
+    os.environ['MONGO_URL'] = f"mongodb://{mongodb_container.get_container_host_ip()}:{mongodb_container.get_exposed_port(27017)}"
     from app.tasks.celery_config import celery
     celery.conf.update(
         task_always_eager=True,
