@@ -14,6 +14,7 @@ testcontainers-mongodb
 testcontainers-redis
 pytest-mock
 httpx
+coverage
 
 # Queue management & Caching
 celery==5.2.2

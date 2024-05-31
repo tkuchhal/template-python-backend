@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlmodel import SQLModel, Field
-from ..adapters.postgres.main import PostgresAdapter
+from app.adapters.postgres.main import PostgresAdapter
 
 
 def run_migrations(db_instance: PostgresAdapter):

@@ -14,6 +14,7 @@ services:
       - redis
       - postgres
       - mongodb
+      - celery_worker
 
   redis:
     image: redis:latest
@@ -33,3 +34,15 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
+
+  celery_worker:
+    build: .
+    command: celery -A app.tasks.celery_config worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/test_db
+      - REDIS_URL=redis://redis:6379
+      - MONGO_URL=mongodb://mongodb:27017/
+    depends_on:
+      - redis
+      - postgres
+      - mongodb

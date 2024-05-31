@@ -1,4 +1,3 @@
-import os
 import redis
 import dotenv
 from loguru import logger
@@ -65,3 +64,6 @@ class RedisAdapter:
             self.connection.delete(key)
         except redis.RedisError as e:
             logger.error(f"Failed to delete key {key}: {e}")
+
+    def get_url(self):
+        return self._redis_url

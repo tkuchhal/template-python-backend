@@ -1,5 +1,4 @@
-import os
-from sqlmodel import SQLModel, create_engine, Session, select
+from sqlmodel import create_engine, Session, select
 from sqlalchemy.exc import SQLAlchemyError
 from loguru import logger
 
