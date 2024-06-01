@@ -16,6 +16,7 @@ RUN if grep -q 'BUILD_TIME=' /code/.env; then \
     fi
 
 COPY ./app /code/app
+COPY ./migrations /code/migrations
 COPY ./tests /code/tests
 
 ENV PYTHONPATH=/code
