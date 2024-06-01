@@ -18,7 +18,7 @@ jobs:
       image_name: template
       image_tag: ${{ github.sha }}
       dockerfile_path: "."
-      test_run_command: "pip install -r requirements.txt -r requirements-test.txt && pytest tests/local --junitxml=pytest_report.xml"
+      test_run_command: "pip install -r requirements.txt && pytest tests --junitxml=pytest_report.xml"
     secrets: inherit
 
   deploy-image:
