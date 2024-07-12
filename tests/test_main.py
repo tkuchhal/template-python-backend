@@ -1,7 +1,7 @@
 from loguru import logger
 from sqlmodel import select
 from uuid import uuid4
-from app.models.main import TestTable
+from app.models.test import TestTable
 from app.config import ConfigManager
 import random
 
@@ -64,3 +64,13 @@ def test_celery(celery):
     assert job.result
     assert job.result == 3
     assert job.status == "SUCCESS"
+
+
+def test_redis(api_client):
+    redis_instance = ConfigManager.get_redis_adapter()
+    key = str(uuid4())
+    value = str(uuid4())
+    redis_instance.set(key, value)
+    assert redis_instance.get(key) == value
+    redis_instance.delete(key)
+    assert redis_instance.get(key) is None
