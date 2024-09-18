@@ -33,7 +33,7 @@ def get_network():
 @app.get('/random')
 def get_random():
     try:
-        random_uuid_base_url = os.getenv('RANDOM_UUID_BASE_URL') if os.getenv('RANDOM_UUID_BASE_URL') else 'https://httpbin.org'
+        random_uuid_base_url = os.getenv('RANDOM_UUID_BASE_URL')
         response = requests.get(random_uuid_base_url + '/uuid')
         response.raise_for_status()
         logger.info(f"Response from {random_uuid_base_url} generator: {response.json().get('uuid')}")
