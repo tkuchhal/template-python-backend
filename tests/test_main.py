@@ -4,6 +4,7 @@ from uuid import uuid4
 from app.models.test import TestTable
 from app.config import ConfigManager
 import random
+import requests
 
 
 def test_index(api_client):
@@ -74,3 +75,17 @@ def test_redis(api_client):
     assert redis_instance.get(key) == value
     redis_instance.delete(key)
     assert redis_instance.get(key) is None
+
+
+def test_wiremock_client(wiremock_client):
+    mock_url = wiremock_client.stub(
+        method="GET",
+        url="/external/api/endpoint",
+        status_code=200,
+        response_body={"data": "Hello, world!"},
+        response_headers={"Content-Type": "application/json"}
+    )
+
+    response = requests.get(mock_url)
+    assert response.status_code == 200
+    assert response.json() == {"data": "Hello, world!"}
