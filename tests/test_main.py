@@ -1,3 +1,5 @@
+import os
+
 from loguru import logger
 from sqlmodel import select
 from uuid import uuid4
@@ -89,3 +91,16 @@ def test_wiremock_client(wiremock_client):
     response = requests.get(mock_url)
     assert response.status_code == 200
     assert response.json() == {"data": "Hello, world!"}
+
+
+def test_random(api_client, wiremock_client):
+    os.environ['RANDOM_UUID_BASE_URL'] = wiremock_client.get_base_url()
+    wiremock_client.stub(
+        method="GET",
+        url="/uuid",
+        status_code=200,
+        response_body={"uuid": 1234567890},
+        response_headers={"Content-Type": "application/json"}
+    )
+    random_response = api_client.get("/random")
+    assert random_response.json() == {"uuid": 1234567890}

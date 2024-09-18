@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from loguru import logger
 import requests
@@ -25,4 +27,17 @@ def get_network():
         return {'outbound-ip': response.json().get('origin')}
     except requests.exceptions.RequestException as e:
         logger.error(f"An error occurred in get_network: {e}")
+        return {'error': str(e)}
+
+
+@app.get('/random')
+def get_random():
+    try:
+        random_uuid_base_url = os.getenv('RANDOM_UUID_BASE_URL') if os.getenv('RANDOM_UUID_BASE_URL') else 'https://httpbin.org'
+        response = requests.get(random_uuid_base_url + '/uuid')
+        response.raise_for_status()
+        logger.info(f"Response from {random_uuid_base_url} generator: {response.json().get('uuid')}")
+        return {'uuid': response.json().get('uuid')}
+    except requests.exceptions.RequestException as e:
+        logger.error(f"An error occurred in get_random: {e}")
         return {'error': str(e)}

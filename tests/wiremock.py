@@ -7,6 +7,9 @@ class WiremockClient:
         self.base_url = base_url
         self.admin_url = self.base_url + "/__admin"
 
+    def get_base_url(self):
+        return self.base_url
+
     def stub(self, method, url, status_code=200, response_body=None, response_headers=None):
         stub_data = {
             "request": {
