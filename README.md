@@ -1,60 +1,154 @@
+# FastAPI Project Template
+
+This project is a comprehensive template for building scalable web applications using FastAPI, with integrated support for PostgreSQL, Redis, MongoDB, and Celery. It provides a solid foundation for developing robust backend services with good practices for configuration management, database interactions, background task processing, and testing.
+
+## Features
+
+- FastAPI web framework
+- PostgreSQL database with SQLModel ORM
+- Redis for caching and message broker
+- MongoDB for document storage
+- Celery for background task processing
+- Docker and docker-compose for easy development and deployment
+- Comprehensive testing setup with pytest and Docker containers
+- Wiremock for mocking external API calls in tests
+- Custom ConfigManager for centralized configuration and adapter management
+
+## Project Structure
+
+```
+.
+├── app
+│   ├── adapters
+│   │   ├── mongodb
+│   │   ├── postgres
+│   │   └── redis
+│   ├── models
+│   ├── tasks
+│   │   ├── celery_config.py
+│   │   └── task_definitions.py
+│   ├── config.py
+│   └── main.py
+├── tests
+│   ├── conftest.py
+│   └── test_main.py
+├── migrations
+│   ├── gen_migration.py
+│   └── migrate.py
+├── docker-compose.yml
+├── Dockerfile
+└── README.md
+```
+
+## Setup
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/your-username/your-repo-name.git
+   cd your-repo-name
+   ```
+
+2. Create a `.env` file in the root directory and add the necessary environment variables:
+   ```
+   DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/test_db
+   REDIS_URL=redis://redis:6379
+   MONGO_URL=mongodb://mongodb:27017/
+   MONGO_DB=test_db
+   ```
+
+3. Build and run the Docker containers:
+   ```
+   docker-compose up --build
+   ```
+
+## Usage
+
 ### ConfigManager
 
-A handy configmanager and set of adapters has been provided for Postgres, Redis and Celery. The ConfigManager
-will automatically load the configuration from the environment variables and provide a connection to the
-database or redis instance using the adapters. In addition, the ConfigManager for Postgres will automatically run
-migrations on the database to bring it up to the latest version.
+The `ConfigManager` provides a centralized way to manage connections to PostgreSQL, Redis, and MongoDB. It automatically loads configuration from environment variables and manages database connections.
 
 #### Connecting to the Database
 
-    from app.config import ConfigManager
-    from app.models import TestTable # Your model should inherit from SQLModel
+```python
+from app.config import ConfigManager
+from app.models import TestTable
 
-    test_instance = TestTable(id=id, name=name)
+db_instance = ConfigManager.get_postgres_adapter()
 
-    # Example insert query
-    with db_instance.get_session() as session:
-        session.add(test_instance)
-        session.commit()
+# Example insert query
+with db_instance.get_session() as session:
+    test_instance = TestTable(id=1, name="Test")
+    session.add(test_instance)
+    session.commit()
 
-    # Example get (select) query by primary key
-    with db_instance.get_session() as session:
-        retrieved_instance = session.get(TestTable, id)
-        logger.info(f"Retrieved instance: {retrieved_instance}")
-        assert retrieved_instance.id == id
-        assert retrieved_instance.name == name
+# Example select query
+with db_instance.get_session() as session:
+    retrieved_instance = session.get(TestTable, 1)
+    print(f"Retrieved instance: {retrieved_instance}")
+```
 
 #### Connecting to Redis
 
-    from app.config import ConfigManager
+```python
+from app.config import ConfigManager
 
-    redis_instance = ConfigManager.get_redis_adapter()
-    redis_instance.set(key, value)
-    assert redis_instance.get(key) == value
-    redis_instance.delete(key)
-    assert redis_instance.get(key) is None
-
-### Setting a new model
-
-- Add your SQLModel to a file in the app/models directory
-- Import your model in the app/models/__init__.py file
-- Run the following command to generate the migration file
-
-```bash
-python ./migrations/gen_migration.py
+redis_instance = ConfigManager.get_redis_adapter()
+redis_instance.set("key", "value")
+assert redis_instance.get("key") == "value"
 ```
 
-- Once generated, you can apply the migration by running the following command
+### Creating a New Model
 
-```bash
-python ./migrations/migrate.py
+1. Add your SQLModel to a file in the `app/models` directory
+2. Import your model in `app/models/__init__.py`
+3. Generate a migration file:
+   ```
+   python ./migrations/gen_migration.py
+   ```
+4. Apply the migration:
+   ```
+   python ./migrations/migrate.py
+   ```
+
+Note: Using the ConfigManager to connect to the database will automatically run migrations on initialization.
+
+### Creating Celery Tasks
+
+1. Define your task in `app/tasks/task_definitions.py`:
+   ```python
+   from app.tasks.celery_config import celery
+
+   @celery.task
+   def your_task(arg1, arg2):
+       # Task logic here
+       return result
+   ```
+
+2. Use the task in your application:
+   ```python
+   from app.tasks.task_definitions import your_task
+
+   result = your_task.delay(arg1, arg2)
+   ```
+
+## Testing
+
+Run tests using pytest:
+
+```
+pytest
 ```
 
-- Alternatively, just using the ConfigManager to connect to the DB will automatically run the migrations at
-  initialization!
+The test setup uses Docker containers for PostgreSQL, Redis, MongoDB, and Wiremock, ensuring isolated and consistent test environments.
 
-### Testing
+## Deployment
 
-- A test container for Redis, Celery and Postgres is provided in the docker-compose.yml file. The test containers will
-  also automatically get generated and injected when running the pytest tests, along with
-  migrations. 
+1. Ensure all necessary environment variables are set in your production environment.
+2. Build the Docker image:
+   ```
+   docker build -t your-app-name .
+   ```
+3. Run the container:
+   ```
+   docker run -p 80:80 your-app-name
+   ```
